@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1581505694726.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2303209015",
+    "id" : "85FD8B1C",
+    "lastKnownWriteTime" : 1581513973,
+    "last_content_update" : 1581513973991,
+    "path" : "~/RStudioProjects/IndicesGenerador/IdentificarEventos/parametros_identificar_eventos.yml",
+    "project_path" : "parametros_identificar_eventos.yml",
+    "properties" : {
+        "cursorPosition" : "6,43",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "yaml"
+}

@@ -1,0 +1,48 @@
+# ----------------------------------------------------------------------------
+# Define el nombre de lo archivos a ser utlizados durante todo el proceso ----
+# ----------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Archivos con datos de entrada 
+# ------------------------------------------------------------------------------
+# NetCDF generado por el paquete gamwgen, con los datos climaticos generados.
+clima_generado: "input/gen_climate.nc"
+puntos_a_extraer: "input/points_to_extract.rds" # debe ser un objeto sf (puede ser NULL)
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
+# Archivos con datos generados por el proceso de identificación de eventos
+# ------------------------------------------------------------------------------
+
+# PAS0 1 -- proyecto: EstadisticasMoviles
+estadisticas_moviles:
+
+  # PAS0 1 -- proyecto: EstadisticasMoviles, script: 01_estadisticas_moviles.R
+  # Archivo con los resultados las estadícticas moviles
+  resultados: "partial/estadisticas_moviles.feather"
+
+# PASO 2 y 3 -- proyecto: IndicesSequia
+indices_sequia:
+
+  # PASO 2 -- proyecto: IndicesSequia, script: 01_generador_configuraciones.R
+  # Archivo con las configuraciones generadas para el cálculo de índices de sequia
+  configuraciones: "partial/configuraciones_indice_sequia.feather"
+
+  # PASO 3 -- proyecto: IndicesSequia, script: 02_calcular_indices.R
+  # Archivo con las configuraciones generadas para el cálculo de índices de sequia
+  resultados: "partial/configuraciones_indice_sequia.feather"
+  
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
+# Archivos con datos de entrada (generados previamente)
+# ------------------------------------------------------------------------------
+# El nombre del archivo netcdf (.nc) con las series generadas.
+netcdf.con.series.generadas: "gen_climate.nc"
+# El nombre con los puntos a ser extraídos del netcdf (generalmente estaciones)
+puntos.a.extraer.data.frame: "crcsas_stations.rds"
+# Columna que contiene el id de los puntos (ubicaciones) extraídas del netcdf
+puntos.a.extraer.columna.id: "station_id"
+# ------------------------------------------------------------------------------

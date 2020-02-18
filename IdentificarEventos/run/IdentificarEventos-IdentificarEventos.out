@@ -1,0 +1,18 @@
+starting worker for localhost:11956 
+Type: EXEC 
+Type: EXEC 
+Type: EXEC 
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Type: DONE 
+[1] "Daniel Bonhaure"
+Type: DONE 

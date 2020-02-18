@@ -1,0 +1,23 @@
+# ------------------------------------------------------------------------------
+# Directorios de trabajo
+# ------------------------------------------------------------------------------
+dir:  
+  base: /home/dbonhaure/RStudioProjects/IndicesGenerador/IndicesSequia/
+  data: /home/dbonhaure/RStudioProjects/IndicesGenerador/data/
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Definicion de configuraciones de indices
+# ------------------------------------------------------------------------------
+indices:
+  SPI: 
+    escala: [ 1, 2, 3, 6 ]
+    periodo.referencia: [ 1971-2010 ]
+    distribucion: [ 'Gamma' ]
+    metodo.ajuste: [ 'NoParametrico', 'ML-SinRemuestreo' ]
+  SPEI: 
+    escala: [ 1, 2, 3, 6 ]
+    periodo.referencia: [ 1971-2010 ]
+    distribucion: [ 'Log-Logistica' ]
+    metodo.ajuste: [ 'NoParametrico', 'ML-SinRemuestreo' ]
+# ------------------------------------------------------------------------------

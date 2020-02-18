@@ -1,0 +1,4 @@
+*.yml
+.Rhistory
+.Rproj.user
+Rplots.pdf

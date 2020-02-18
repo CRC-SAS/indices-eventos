@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1581528660937.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2079642134",
+    "id" : "3893851",
+    "lastKnownWriteTime" : 1581623771,
+    "last_content_update" : 1581623771,
+    "path" : "~/RStudioProjects/IndicesGenerador/data/configuracion_archivos_utilizados.yml",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "24,39",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "yaml"
+}

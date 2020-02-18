@@ -1,0 +1,62 @@
+# ------------------------------------------------------------------------------
+# Definicion de ventana de calculo
+# ------------------------------------------------------------------------------
+# Este parametro define los ancho de la ventana de tiempo (en pentadas) para 
+# realizar la agregacion. Se utilizan anchos de ventana en relacion a los indices
+# de sequia a calcular: 1, 2, 3, 6, 9, 12, 18, 24, 36 y 48 meses. Pasado a pentadas, 
+# los valores correspondientes son: 6, 12, 18, 36, 54, 72, 108, 144, 216 y 288.
+ancho.ventana: [ 6 ]
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Parametros relacionados con el numero aceptable de datos faltantes en un mes
+# ------------------------------------------------------------------------------
+# Temperatura maxima y minima: hay dos criterios para definir si el numero de dias 
+# faltantes permite calcular una agregacion. Primero, no puede haber mas de 
+# un numero total de dias faltantes en un mes. Segundo, no puede haber mas de X dias 
+# seguidos faltantes. Si alguna de estas dos condiciones falla, el valor resultante
+# de la agregacion es NA. Para el caso de la precipitacion, solo aplica el primer 
+# criterio. Para los distintos anchos de ventana la politica de faltantes varia
+# ya que la cantidad de datos disponibles es diferente.
+faltantes:
+  - { ancho.ventana: 6, politica: { tmax: { maximo: 5, consecutivos: 3 }, tmin: { maximo: 5, consecutivos: 3 }, prcp: { maximo: 3 } } }
+  - { ancho.ventana: 12, politica: { tmax: { maximo: 10, consecutivos: 3 }, tmin: { maximo: 10, consecutivos: 3 }, prcp: { maximo: 6 } } }
+  - { ancho.ventana: 18, politica: { tmax: { maximo: 15, consecutivos: 3 }, tmin: { maximo: 15, consecutivos: 3 }, prcp: { maximo: 9 } } }
+  - { ancho.ventana: 36, politica: { tmax: { maximo: 30, consecutivos: 3 }, tmin: { maximo: 30, consecutivos: 3 }, prcp: { maximo: 18 } } }
+  - { ancho.ventana: 54, politica: { tmax: { maximo: 45, consecutivos: 3 }, tmin: { maximo: 45, consecutivos: 3 }, prcp: { maximo: 27 } } }
+  - { ancho.ventana: 72, politica: { tmax: { maximo: 60, consecutivos: 3 }, tmin: { maximo: 60, consecutivos: 3 }, prcp: { maximo: 36 } } }
+  - { ancho.ventana: 108, politica: { tmax: { maximo: 90, consecutivos: 3 }, tmin: { maximo: 90, consecutivos: 3 }, prcp: { maximo: 54 } } }
+  - { ancho.ventana: 144, politica: { tmax: { maximo: 120, consecutivos: 3 }, tmin: { maximo: 120, consecutivos: 3 }, prcp: { maximo: 72 } } }
+  - { ancho.ventana: 216, politica: { tmax: { maximo: 180, consecutivos: 3 }, tmin: { maximo: 180, consecutivos: 3 }, prcp: { maximo: 108 } } }
+  - { ancho.ventana: 288, politica: { tmax: { maximo: 240, consecutivos: 3 }, tmin: { maximo: 240, consecutivos: 3 }, prcp: { maximo: 144 } } }
+#-------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
+# Parametros relacionados con los estadisticos aplicables a cada variable
+# ------------------------------------------------------------------------------
+estadisticos:
+  tmax:
+    - { id: Media, funcion: mean, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: Mediana, funcion: median, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: DesviacionEstandar, funcion: sd, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: MAD, funcion: mad, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: NFaltantes, funcion: ContarFaltantes, parametros: { }, validable: FALSE }
+    - { id: NDisponibles, funcion: ContarDisponibles, parametros: { }, validable: FALSE }
+  tmin:
+    - { id: Media, funcion: mean, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: Mediana, funcion: median, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: DesviacionEstandar, funcion: sd, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: MAD, funcion: mad, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: NFaltantes, funcion: ContarFaltantes, parametros: { }, validable: FALSE }
+    - { id: NDisponibles, funcion: ContarDisponibles, parametros: { }, validable: FALSE }
+  prcp:
+    - { id: Suma, funcion: sum, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: Ocurrencia, funcion: CalcularOcurrencia, parametros: { umbral: 0.1 }, validable: TRUE }
+    - { id: Media, funcion: mean, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: Mediana, funcion: median, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: DesviacionEstandar, funcion: sd, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: MAD, funcion: mad, parametros: { na.rm: TRUE }, validable: TRUE }
+    - { id: NFaltantes, funcion: ContarFaltantes, parametros: { }, validable: FALSE }
+    - { id: NDisponibles, funcion: ContarDisponibles, parametros: { }, validable: FALSE }
+# ------------------------------------------------------------------------------

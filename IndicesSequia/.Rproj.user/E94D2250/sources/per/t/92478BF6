@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1581628596984.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "663634059",
+    "id" : "92478BF6",
+    "lastKnownWriteTime" : 1581628646,
+    "last_content_update" : 1581628646544,
+    "path" : "~/RStudioProjects/IndicesGenerador/IndicesSequia/configuracion_calculador_indices.yml",
+    "project_path" : "configuracion_calculador_indices.yml",
+    "properties" : {
+        "cursorPosition" : "5,74",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "yaml"
+}

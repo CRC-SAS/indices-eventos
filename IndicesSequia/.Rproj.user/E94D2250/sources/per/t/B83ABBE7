@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1577996628420.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3827481214",
+    "id" : "B83ABBE7",
+    "lastKnownWriteTime" : 1581630730,
+    "last_content_update" : 1581630730432,
+    "path" : "~/RStudioProjects/IndicesGenerador/IndicesSequia/02_calculador_indices.R",
+    "project_path" : "02_calculador_indices.R",
+    "properties" : {
+        "cursorPosition" : "133,45",
+        "scrollLine" : "125"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

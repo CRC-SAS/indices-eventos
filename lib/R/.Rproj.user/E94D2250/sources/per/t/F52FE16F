@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1577729610575.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3437241208",
+    "id" : "F52FE16F",
+    "lastKnownWriteTime" : 1575380448,
+    "last_content_update" : 1575380448,
+    "path" : "~/RStudioProjects/IndicesGenerador/lib/R/Task.R",
+    "project_path" : "Task.R",
+    "properties" : {
+        "cursorPosition" : "32,25",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

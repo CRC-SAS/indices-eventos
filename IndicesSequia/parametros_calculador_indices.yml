@@ -1,0 +1,42 @@
+
+# ------------------------------------------------------------------------------
+# Maxima proporcion de faltantes para periodo de referencia
+# ------------------------------------------------------------------------------
+min.proporcion.disponibles.referencia: 0.75
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Definicion de funciones de ajuste y sus parametros generales
+# ------------------------------------------------------------------------------
+ajuste.general:
+  NoParametrico: { funcion: 'AjustarNoParametrico', parametros: { } }
+  #ML-ConRemuestreo: { funcion: 'AjustarMaximaVerosimilitud', parametros: { numero.muestras: 501, min.tasa.valores.positivos: 0.9 } }
+  ML-SinRemuestreo: { funcion: 'AjustarMaximaVerosimilitud', parametros: { min.tasa.valores.positivos: 0.9 } }
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Definicion de funciones de ajuste y sus parametros particulares por indice
+# ------------------------------------------------------------------------------
+ajuste.particular:
+  NoParametrico: { SPI: { lbound: 0, min.tasa.valores.positivos: 0.95 }, Decil: { lbound: 0, min.tasa.valores.positivos: 0.95 } }
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Definicion de parametros para tests de bondad de ajuste
+# ------------------------------------------------------------------------------
+tests: 
+  umbral.p.valor: 0.05
+  umbral.ccc: 0.9
+  qcomhd.muestras: 100
+  probs:
+    ccc: { from: 0.01, to: 0.99, by: 0.01 }
+    qcomhd: { from: 0.1, to: 0.9, by: 0.1 }
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Definicion de funciones de calculo de indices
+# ------------------------------------------------------------------------------
+calculo:
+  SPI: { funcion: 'CalcularSPI', parametro.lista: 'parametros.gamma', parametro.logspline: 'objeto.ajuste', parametros.adicionales: { limites: { min: -3, max: 3 } } }
+  SPEI: { funcion: 'CalcularSPEI', parametro.lista: 'parametros.log.logistica', parametro.logspline: 'objeto.ajuste', parametros.adicionales: { limites: { min: -3, max: 3 } } }
+# ------------------------------------------------------------------------------

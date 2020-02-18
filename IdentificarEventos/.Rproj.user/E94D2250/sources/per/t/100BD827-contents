@@ -1,0 +1,17 @@
+# ------------------------------------------------------------------------------
+# Directorios de trabajo
+# ------------------------------------------------------------------------------
+dir:  
+  base: /home/dbonhaure/RStudioProjects/IndicesGenerador/IdentificarEventos/
+  run: /home/dbonhaure/RStudioProjects/IndicesGenerador/IdentificarEventos/run/
+  indices.sequia:
+    run: /home/dbonhaure/RStudioProjects/IndicesGenerador/IndicesSequia/run/
+  lib: /home/dbonhaure/RStudioProjects/IndicesGenerador/lib/R/
+  data: /home/dbonhaure/RStudioProjects/IndicesGenerador/data/
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Cantidad maxima de procesos paralelos
+# ------------------------------------------------------------------------------
+max.procesos: 4
+# ------------------------------------------------------------------------------

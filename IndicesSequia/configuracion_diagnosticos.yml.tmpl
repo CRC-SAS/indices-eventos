@@ -1,0 +1,31 @@
+# ------------------------------------------------------------------------------
+# Directorios de trabajo
+# ------------------------------------------------------------------------------
+dir:  
+  base: ${base}/scripts/R/IndicesSequia/
+  diagnosticos: ${base}/scripts/R/IndicesSequia/diagnosticos/
+  lib: ${base}/lib/R/
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Acceso a base de datos
+# ------------------------------------------------------------------------------
+db:
+  name: ${db.name}     # Nombre de la base de datos con registros meteorologicos
+  user: ${db.user}     # Nombre del usuario  para ingresar a la base de datos
+  pass: ${db.password} # Password del usuario  para entrar a la base de datos
+  host: ${db.host}     # Nombre del host donde esta la base de datos
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Definicion de estaciones de prueba para diagnosticos
+# ------------------------------------------------------------------------------
+estaciones.prueba:
+  - { omm_id: "87544", nombre: "Pehuajó" }
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Umbral de p-valor para dictaminar que el test de normalidad falla
+# ------------------------------------------------------------------------------
+umbral.p.valor: 0.05
+# ------------------------------------------------------------------------------

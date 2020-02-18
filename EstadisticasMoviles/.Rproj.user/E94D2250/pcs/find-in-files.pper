@@ -1,0 +1,10 @@
+{
+    "dialog-state" : {
+        "caseSensitive" : false,
+        "filePatterns" : [
+        ],
+        "path" : "~/RStudioProjects/gamwgen",
+        "query" : "sf::st_as_sf",
+        "regex" : false
+    }
+}

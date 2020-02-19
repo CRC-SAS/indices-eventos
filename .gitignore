@@ -1,6 +1,10 @@
 IndicesSequia/results/*
+IndicesSequia/diagnosticos/*
 data/control/*
 data/partial/*
 data/output/*
-.Rproj.user
+**/.Rproj.user
+**/.Rhistory
 **/run/*
+**/.svn_ignore.txt
+**/.RData

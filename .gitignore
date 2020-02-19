@@ -8,3 +8,5 @@ data/output/*
 **/run/*
 **/.svn_ignore.txt
 **/.RData
+*.yml
+!param*.yml

@@ -5,23 +5,33 @@
 CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configuraciones.indice, estadisticas.moviles) {
   # Obtener la ubicación para la cual se calcularán los índices
   ubicacion <- input.value
-  script$info(glue::glue("Procesando estadisticas para la ubicación {ubicacion$point_id} ", 
-                         "(lon: {ubicacion$lon_dec}, lat: {ubicacion$lat_dec})"))
+  
+  # Identificar la columna con el id de la ubicación (usualmente station_id, o point_id)
+  id_column <- IdentificarIdColumn(ubicacion)
+  
+  # Informar estado de la ejecución
+  script$info(glue::glue("Procesando estadisticas para la ubicación con ",
+                         "{id_column} = {ubicacion %>% dplyr::pull(!!id_column)} ",
+                         "(lon: {ubicacion$longitude}, lat: {ubicacion$latitude})"))
   
   # Asignar funcion rgenlog a Global Environment (sino la ejecucion en procesos hijos no funciona bien)
   assign("rgenlog", rgenlog, .GlobalEnv)
   
+  # Filtrar estadisticas.moviles para quedarnos solo con las asociadas a la ubicación analizada
+  estadisticas.moviles.ubicacion = estadisticas.moviles %>% 
+    dplyr::filter(!!rlang::sym(id_column) == dplyr::pull(ubicacion, !!id_column))
+  
   # Estadísticas móviles para prcp
-  estadisticas.precipitacion <- estadisticas.moviles %>% 
-    dplyr::filter(point_id == ubicacion$point_id, variable_id == 'prcp', estadistico == 'Suma', metodo_imputacion_id == 0) %>%
+  estadisticas.precipitacion <- estadisticas.moviles.ubicacion %>% 
+    dplyr::filter(variable_id == 'prcp', estadistico == 'Suma', metodo_imputacion_id == 0) %>%
     dplyr::select(realizacion, fecha_desde, fecha_hasta, ancho_ventana_pentadas, prcp = valor) 
   # Estadísticas móviles para tmin
-  estadisticas.temp.min      <- estadisticas.moviles %>% 
-    dplyr::filter(point_id == ubicacion$point_id, variable_id == 'tmin', estadistico == 'Media', metodo_imputacion_id == 0) %>%
+  estadisticas.temp.min      <- estadisticas.moviles.ubicacion %>% 
+    dplyr::filter(variable_id == 'tmin', estadistico == 'Media', metodo_imputacion_id == 0) %>%
     dplyr::select(realizacion, fecha_desde, fecha_hasta, ancho_ventana_pentadas, tmin = valor) 
   # Estadísticas móviles para tmax
-  estadisticas.temp.max      <- estadisticas.moviles %>% 
-    dplyr::filter(point_id == ubicacion$point_id, variable_id == 'tmax', estadistico == 'Media', metodo_imputacion_id == 0) %>%
+  estadisticas.temp.max      <- estadisticas.moviles.ubicacion %>% 
+    dplyr::filter(variable_id == 'tmax', estadistico == 'Media', metodo_imputacion_id == 0) %>%
     dplyr::select(realizacion, fecha_desde, fecha_hasta, ancho_ventana_pentadas, tmax = valor) 
   
   # Calcular fecha de ultimos datos y alinear series de variables climaticas por fechas. 
@@ -143,7 +153,7 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
           # b. Tomando la primera fecha como ejemplo (daria lo mismo tomar cualquiera),
           #    obtener parametros de ajuste.
           parametros.ajuste <- AjustarParametrosUbicacionFecha(ubicacion, fechas.procesables.pentada[1], configuracion.indice,
-                                                               script, config, estadisticas.variables)
+                                                               script, config, estadisticas.variables, id_column)
           
           # c. Calcular indices para fechas correspondientes a esa pentada (los parametros son los mismos)
           resultados.indice.configuracion.pentada <- purrr::map_dfr(
@@ -166,17 +176,23 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
       
       # iii. Guardar valor de indice y percentil asociado en base de datos.
       if (nrow(resultados.indice.configuracion) > 0) {
-        script$info(glue::glue("Almacenando indices de sequia de la ubicación {ubicacion$point_id} ",
+        script$info(glue::glue("Almacenando indices de sequia de la ubicación {ubicacion %>% dplyr::pull(!!id_column)} ",
                                "para la configuración {configuracion.indice$id}"))
         valores.indice <- resultados.indice.configuracion %>%
           dplyr::mutate(indice = configuracion.indice$indice, escala = configuracion.indice$escala, 
                         distribucion = configuracion.indice$distribucion, metodo_ajuste = configuracion.indice$metodo_ajuste, 
-                        metodo_imputacion_id = 0, point_id = ubicacion$point_id) %>%
-          dplyr::select(point_id, realizacion, pentada_fin, ano, metodo_imputacion_id, indice, escala, 
+                        metodo_imputacion_id = 0, !!id_column := dplyr::pull(ubicacion, !!id_column)) %>%
+          dplyr::select(!!id_column, realizacion, pentada_fin, ano, metodo_imputacion_id, indice, escala, 
                         distribucion, metodo_ajuste, valor_dato, valor_indice, percentil_dato)
         return(valores.indice)
       } else {
-        valores.indice <- tibble::tibble(point_id = integer(), realizacion = integer(), pentada_fin = double(), ano = double(), 
+        type_of_id_col <- typeof(dplyr::pull(ubicacion,!!id_column))
+        valores.indice <- tibble::tibble(!!id_column := if(type_of_id_col == "integer") integer() else 
+                                                        if(type_of_id_col == "numeric") double() else 
+                                                        if(type_of_id_col == "logical") logical() else 
+                                                        if(type_of_id_col == "character") character() else
+                                                          character(), 
+                                         realizacion = integer(), pentada_fin = double(), ano = double(), 
                                          metodo_imputacion_id = double(), indice = character(), escala = integer(), 
                                          distribucion = character(), metodo_ajuste = character(), valor_dato = double(), 
                                          valor_indice = double(), percentil_dato = double())
@@ -189,14 +205,14 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
 }
 
 AjustarParametrosUbicacionFecha <- function(ubicacion, fecha.procesable, configuracion.indice,
-                                            script, config, estadisticas.variables) {
+                                            script, config, estadisticas.variables, id_column) {
   # 1. Buscar parametros de ajuste para esta configuracion, ubicacion,
   #    y pentada de fin (correspondiente a la fecha procesable)
   ano.fin     <- lubridate::year(fecha.procesable)
   pentada.fin <- fecha.a.pentada.ano(fecha.procesable)
   
-  script$info(glue::glue("Ajustando parametros para pentada {pentada.fin} de la ubicación", 
-                         "{ubicacion$point_id} y la configuración {configuracion.indice$id}"))
+  script$info(glue::glue("Ajustando parametros para pentada {pentada.fin} de la ubicación ", 
+                         "{ubicacion %>% dplyr::pull(!!id_column)} y la configuración {configuracion.indice$id}"))
   
   # a. Buscar valores para el periodo de referencia. Cuando el indice es SPEI,
   #    el valor buscado es (prcp - et0), sino es (prcp)
@@ -245,7 +261,7 @@ AjustarParametrosUbicacionFecha <- function(ubicacion, fecha.procesable, configu
   if (! is.na(configuracion.indice$distribucion) || 
       (configuracion.indice$metodo_ajuste %in% c("NoParametrico", "Empirico"))) {
     script$info(glue::glue("Verificando bondad de ajuste para pentada {pentada.fin} de la ubicación ", 
-                           "{ubicacion$point_id} y la configuración {configuracion.indice$id}"))
+                           "{ubicacion %>% dplyr::pull(!!id_column)} y la configuración {configuracion.indice$id}"))
     
     parametros.test <- list(x = variable.acumulada, config = config)
     if (configuracion.indice$metodo_ajuste == "NoParametrico") {
@@ -277,11 +293,13 @@ AjustarParametrosUbicacionFecha <- function(ubicacion, fecha.procesable, configu
     # Guardar resultados de tests en base de datos
     if (! is.null(estadisticos)) {
       resultado.tests <- estadisticos %>%
-        dplyr::mutate(point_id = ubicacion$point_id, indice_configuracion_id = configuracion.indice$id, 
+        dplyr::mutate(!!id_column := dplyr::pull(ubicacion, !!id_column), 
+                      indice_configuracion_id = configuracion.indice$id, 
                       metodo_imputacion_id = 0, pentada_fin = pentada.fin) %>%  
-        dplyr::select(indice_configuracion_id, point_id, pentada_fin, test, parametro, metodo_imputacion_id, valor)
-      feather::write_feather(resultado.tests, glue::glue("{sub('/$','',config$dir$data)}/resultados_tests/resultados_tests_",
-                                                         "{ubicacion$point_id}_{configuracion.indice$id}_{pentada.fin}.feather"))
+        dplyr::select(indice_configuracion_id, !!id_column, pentada_fin, test, parametro, metodo_imputacion_id, valor)
+      feather::write_feather(resultado.tests, glue::glue("{config$dir$data}/control/resultados_tests/",
+                                                         "resultados_tests_{ubicacion %>% dplyr::pull(!!id_column)}_",
+                                                         "{configuracion.indice$id}_{pentada.fin}.feather"))
     }
   }
   
@@ -289,9 +307,10 @@ AjustarParametrosUbicacionFecha <- function(ubicacion, fecha.procesable, configu
   #    no se guarda en la base de datos. Ir directamente al paso 3.
   if (is.list(parametros.ajuste) && (class(parametros.ajuste) != "logspline")) {
     parametros.ajuste <- ParametrosADataFrame(parametros.ajuste) %>%
-      dplyr::mutate(point_id = ubicacion$point_id,  indice_configuracion_id = configuracion.indice$id, 
+      dplyr::mutate(!!id_column := dplyr::pull(ubicacion, !!id_column),  
+                    indice_configuracion_id = configuracion.indice$id, 
                     metodo_imputacion_id = 0, pentada_fin = pentada.fin) %>%
-      dplyr::select(indice_configuracion_id, point_id, pentada_fin, parametro, metodo_imputacion_id, valor)
+      dplyr::select(indice_configuracion_id, !!id_column, pentada_fin, parametro, metodo_imputacion_id, valor)
   }
   
   return (parametros.ajuste)

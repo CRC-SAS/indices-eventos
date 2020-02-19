@@ -6,7 +6,7 @@ list.of.packages <- c("ADGofTest", "caret", "dplyr", "fitdistrplus", "lmomco", "
                       "lubridate", "magrittr", "mgcv", "purrr", "SCI", "sirad", "SPEI", 
                       "stats", "stringr", "utils", "WRS2", "yaml", "yardstick", "feather",
                       "R6", "futile.logger", "mgcv", "doSNOW", "foreach", "snow", "parallel",
-                      "RPostgres")
+                      "RPostgres", "ncdf4")
 for (pack in list.of.packages) {
   if (!require(pack, character.only = TRUE)) {
     stop(paste0("Paquete no encontrado: ", pack))
@@ -116,12 +116,25 @@ estadisticas.moviles <- feather::read_feather(archivo)
 rm(archivo)
 
 # g) Buscar ubicaciones a las cuales se aplicara el calculo de indices de sequia
-script$info("Obtener ubicaciones para el cálculo de los índices de sequia")
+# g.1) Obtener datos producidos por el generador y filtrarlos
+script$info("Leyendo netcdf con datos de entrada")
+netcdf_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
 points_filename <- glue::glue("{config$dir$data}/{config$files$puntos_a_extraer}")
-ubicaciones_a_procesar <- readRDS(points_filename) %>%
+if (is.null(points_filename))
+  datos_climaticos_generados <- gamwgen::netcdf.as.sf(netcdf_filename)
+if (!is.null(points_filename))
+  datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
+script$info("Lectura del netcdf finalizada")
+# g.2) Generar tibble con ubicaciones sobre las cuales iterar
+script$info("Obtener ubicaciones sobre las cuales iterar")
+ubicaciones_a_procesar <- datos_climaticos_generados %>%
   dplyr::select(dplyr::ends_with("_id"), longitude, latitude) %>%
+  sf::st_transform(crs = sf::st_crs(4326)) %>%
+  dplyr::mutate(lon_dec = sf::st_coordinates(geometry)[,'X'],
+                lat_dec = sf::st_coordinates(geometry)[,'Y']) %>%
   sf::st_drop_geometry() %>% tibble::as_tibble() %>% dplyr::distinct()
 script$info("Obtención finalizada")
+#
 
 # ------------------------------------------------------------------------------
 
@@ -145,7 +158,7 @@ resultados.indices.sequia.tibble <- resultados.indices.sequia %>% purrr::map_dfr
 
 # Guardar resultados en un archivo fácil de compartir
 feather::write_feather(resultados.indices.sequia.tibble, 
-                       glue::glue("{config$dir$data}/config$files$indices_sequia$resultados"))
+                       glue::glue("{config$dir$data}/{config$files$indices_sequia$resultados}"))
 
 # Si hay errores, terminar ejecucion
 task.indices.sequia.errors <- task.indices.sequia$getErrors()

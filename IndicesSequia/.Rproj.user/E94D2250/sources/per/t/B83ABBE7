@@ -5,15 +5,15 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "3827481214",
+    "hash" : "2813086509",
     "id" : "B83ABBE7",
-    "lastKnownWriteTime" : 1581630730,
-    "last_content_update" : 1581630730432,
+    "lastKnownWriteTime" : 1582075053,
+    "last_content_update" : 1582075053489,
     "path" : "~/RStudioProjects/IndicesGenerador/IndicesSequia/02_calculador_indices.R",
     "project_path" : "02_calculador_indices.R",
     "properties" : {
-        "cursorPosition" : "133,45",
-        "scrollLine" : "125"
+        "cursorPosition" : "160,22",
+        "scrollLine" : "156"
     },
     "read_only" : false,
     "read_only_alternatives" : [

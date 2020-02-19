@@ -2,3 +2,5 @@ IndicesSequia/results/*
 data/control/*
 data/partial/*
 data/output/*
+.Rproj.user
+**/run/*

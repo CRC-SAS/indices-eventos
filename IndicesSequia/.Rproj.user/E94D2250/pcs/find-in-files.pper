@@ -3,9 +3,8 @@
         "caseSensitive" : false,
         "filePatterns" : [
         ],
-        "path" : "",
-        "projectRelative" : true,
-        "query" : "CalcularIndicesSequiaUbicacion",
+        "path" : "~/RStudioProjects/gamwgen",
+        "query" : "[,'",
         "regex" : false
     }
 }

@@ -1,0 +1,27 @@
+
+
+# ------------------------------------------------------------------------------
+# Definicion de configuraciones de indices
+# ------------------------------------------------------------------------------
+indices:
+  SPI: 
+    escala: [ 1, 2, 3, 6 ]  # 9, 12, 18, 24, 36, 48 ]
+    periodo.referencia: [ 1971-2010 ]
+    distribucion: [ 'Gamma' ]
+    metodo.ajuste: [ 'NoParametrico', 'ML-SinRemuestreo' ]  # 'L-Momentos-PP-PWM', 'L-Momentos-UB-PWM', 'ML-ConRemuestreo' ]
+  SPEI: 
+    escala: [ 1, 2, 3, 6 ]  # 9, 12, 18, 24, 36, 48 ]
+    periodo.referencia: [ 1971-2010 ]
+    distribucion: [ 'Log-Logistica' ]
+    metodo.ajuste: [ 'NoParametrico', 'ML-SinRemuestreo' ]  # 'L-Momentos-PP-PWM', 'L-Momentos-UB-PWM', 'ML-ConRemuestreo' ]
+#  Decil: 
+#    escala: [ 1, 2, 3, 6, 9, 12, 18, 24, 36, 48 ]
+#    periodo.referencia: [ 1971-2010 ]
+#    distribucion: [ .na.character ]
+#    metodo.ajuste: [ 'Empirico', 'NoParametrico' ]
+#  PPN: 
+#    escala: [ 1, 2, 3, 6, 9, 12, 18, 24, 36, 48 ]
+#    periodo.referencia: [ 1981-2010 ]
+#    distribucion: [ .na.character ]
+#    metodo.ajuste: [ 'Empirico' ]
+# ------------------------------------------------------------------------------

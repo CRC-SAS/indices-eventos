@@ -33,9 +33,23 @@ if (! file.exists(archivo.config)) {
     config$dir[nm] <- base::sub('/$', '', config$dir[[nm]])
 }
 
-# b) YAML de configuración del intercambio de archivos del proceso de generación de índices
+# b) YAML de parametros de la generación de configuraciones
 if (length(args) > 1) {
-  archivo.nombres <- args[2]
+  archivo.params <- args[2]
+} else {
+  # No vino el archivo de configuracion por linea de comandos. Utilizo un archivo default
+  archivo.params <- paste0(getwd(), "/parametros_generador_configuraciones.yml")
+}
+if (! file.exists(archivo.params)) {
+  stop(paste0("El archivo de parámetros ", archivo.params, " no existe\n"))
+} else {
+  cat(paste0("Leyendo archivo de parámetros ", archivo.params, "...\n"))
+  config$params <- yaml::yaml.load_file(archivo.params)
+}
+
+# c) YAML de configuración del intercambio de archivos del proceso de generación de índices
+if (length(args) > 1) {
+  archivo.nombres <- args[3]
 } else {
   # No vino el archivo de configuracion por linea de comandos. Utilizo un archivo default
   archivo.nombres <- paste0(config$dir$data, "/configuracion_archivos_utilizados.yml")
@@ -54,9 +68,9 @@ rm(archivo.config, archivo.nombres, args, nm); gc()
 # --- PASO 3. Generar configuraciones ----
 # -----------------------------------------------------------------------------#
 configuraciones <- purrr::map_dfr(
-  .x = names(config$indices),
+  .x = names(config$params$indices),
   .f = function(indice, config) {
-    indice.data <- config$indices[[indice]]
+    indice.data <- config$params$indices[[indice]]
     indice.conf <- purrr::cross_df(
       .l = list(escala = indice.data$escala, distribucion = indice.data$distribucion, 
                 metodo_ajuste = indice.data$metodo.ajuste, periodo_referencia = indice.data$periodo.referencia)

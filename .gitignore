@@ -3,10 +3,10 @@ IndicesSequia/diagnosticos/*
 data/control/*
 data/partial/*
 data/output/*
-**/.Rproj.user
-**/.Rhistory
 **/run/*
-**/.svn_ignore.txt
-**/.RData
 *.yml
 !param*.yml
+.Rproj.user
+.Rhistory
+.RData
+.svn_ignore.txt

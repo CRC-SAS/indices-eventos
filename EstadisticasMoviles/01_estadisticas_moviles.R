@@ -99,8 +99,8 @@ if (!is.null(config$files$puntos_a_extraer))
 script$info("Lectura del netcdf finalizada")
 
 # x) Reducción de trabajo (solo para pruebas)
-datos_climaticos_generados <- datos_climaticos_generados %>%
-  dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
+# datos_climaticos_generados <- datos_climaticos_generados %>%
+#   dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
 
 # f) Fechas mínima y máxima
 fecha.minima <- min(datos_climaticos_generados$date)

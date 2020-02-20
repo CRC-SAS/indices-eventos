@@ -124,8 +124,8 @@ if (!is.null(config$files$puntos_a_extraer))
   datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
 script$info("Lectura del netcdf finalizada")
 # g.x) Reducción de trabajo (solo para pruebas)
-#datos_climaticos_generados <- datos_climaticos_generados %>%
-#  dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
+# datos_climaticos_generados <- datos_climaticos_generados %>%
+#   dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
 # g.2) Generar tibble con ubicaciones sobre las cuales iterar
 script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%

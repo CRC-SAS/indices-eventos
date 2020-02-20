@@ -106,25 +106,26 @@ script$start()
 # e) Obtener configuraciones para el cálculo de los indices de sequía
 script$info("Buscando configuraciones para los índices a ser calculados")
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
-configuraciones.indice <- feather::read_feather(archivo)
-rm(archivo)
+configuraciones.indice <- feather::read_feather(archivo); rm(archivo)
 
 # f) Buscar las estadisticas moviles 
 script$info("Buscando estadísticas móviles para calcular indices de sequia")
 archivo <- glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$resultados}")
-estadisticas.moviles <- feather::read_feather(archivo)
-rm(archivo)
+estadisticas.moviles <- feather::read_feather(archivo); rm(archivo)
 
 # g) Buscar ubicaciones a las cuales se aplicara el calculo de indices de sequia
 # g.1) Obtener datos producidos por el generador y filtrarlos
 script$info("Leyendo netcdf con datos de entrada")
 netcdf_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
 points_filename <- glue::glue("{config$dir$data}/{config$files$puntos_a_extraer}")
-if (is.null(points_filename))
-  datos_climaticos_generados <- gamwgen::netcdf.as.sf(netcdf_filename)
-if (!is.null(points_filename))
+if (is.null(config$files$puntos_a_extraer))
+  datos_climaticos_generados <- gamwgen::netcdf.as.sf(netcdf_filename, add.id = T)
+if (!is.null(config$files$puntos_a_extraer))
   datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
 script$info("Lectura del netcdf finalizada")
+# g.x) Reducción de trabajo (solo para pruebas)
+#datos_climaticos_generados <- datos_climaticos_generados %>%
+#  dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
 # g.2) Generar tibble con ubicaciones sobre las cuales iterar
 script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
@@ -134,7 +135,6 @@ ubicaciones_a_procesar <- datos_climaticos_generados %>%
                 lat_dec = sf::st_coordinates(geometry)[,'Y']) %>%
   sf::st_drop_geometry() %>% tibble::as_tibble() %>% dplyr::distinct()
 script$info("Obtención finalizada")
-#
 
 # ------------------------------------------------------------------------------
 

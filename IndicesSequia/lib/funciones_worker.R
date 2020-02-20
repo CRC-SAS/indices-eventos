@@ -17,6 +17,10 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
   # Asignar funcion rgenlog a Global Environment (sino la ejecucion en procesos hijos no funciona bien)
   assign("rgenlog", rgenlog, .GlobalEnv)
   
+  
+  #############################################################################################
+  ## Definición de estadisticas.variables.completas, fecha.primeros.datos y fecha.ultimos.datos
+  
   # Filtrar estadisticas.moviles para quedarnos solo con las asociadas a la ubicación analizada
   estadisticas.moviles.ubicacion = estadisticas.moviles %>% 
     dplyr::filter(!!rlang::sym(id_column) == dplyr::pull(ubicacion, !!id_column))
@@ -34,6 +38,8 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
     dplyr::filter(variable_id == 'tmax', estadistico == 'Media', metodo_imputacion_id == 0) %>%
     dplyr::select(realizacion, fecha_desde, fecha_hasta, ancho_ventana_pentadas, tmax = valor) 
   
+  rm(estadisticas.moviles.ubicacion); invisible(gc())
+  
   # Calcular fecha de ultimos datos y alinear series de variables climaticas por fechas. 
   # Agregar columna con dato de evapotranspiracion potencial calculada a partir de
   # metodo de Hargreaves-Samani. Este metodo solamente requiere valores de precipitacion,
@@ -47,14 +53,14 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
     dplyr::left_join(estadisticas.temp.min, by = c("realizacion", "fecha_desde", "fecha_hasta", "ancho_ventana_pentadas")) %>%
     dplyr::left_join(estadisticas.temp.max, by = c("realizacion", "fecha_desde", "fecha_hasta", "ancho_ventana_pentadas")) %>%
     dplyr::mutate(srad = CalcularRadiacionSolarExtraterrestre(fecha_desde, fecha_hasta, ubicacion$lat_dec)) %>%
-    dplyr::mutate(et0 = SPEI::hargreaves(Tmin = tmin, Tmax = tmax, Pre = prcp, Ra = srad, na.rm = TRUE)) %>%
+    dplyr::mutate(et0 = SPEI::hargreaves(Tmin = tmin, Tmax = tmax, Pre = prcp, Ra = srad, na.rm = TRUE)[,"ET0_har"]) %>%
     dplyr::select(-srad, -tmin, -tmax)
   
   fecha.primeros.datos   <- min(estadisticas.variables$fecha_desde)
   fecha.ultimos.datos    <- max(estadisticas.variables$fecha_hasta)
   
   # Se borran datos que ya no será utilizados
-  rm(estadisticas.precipitacion, estadisticas.temp.max, estadisticas.temp.min)
+  rm(estadisticas.precipitacion, estadisticas.temp.max, estadisticas.temp.min); invisible(gc())
   
   # Interpolacion de et0 a nivel mensual para completar faltantes
   estadisticas.mensuales.variables <- estadisticas.variables %>%
@@ -93,7 +99,23 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
     script$warn(glue::glue("No es posible ajustar ciclo estacional para ET0: {e$message}\n"))
     estadisticas.variables.completas <<- estadisticas.variables
   })
-  rm(et0, pentada, estadisticas.mensuales.variables, estadisticas.variables)
+  rm(et0, pentada, estadisticas.mensuales.variables, estadisticas.variables); invisible(gc())
+  
+  
+  #########################################################################
+  ## Definición de fechas.procesables, fechas.pentada.ano y pentadas.unicas
+  
+  # Procesar desde la primera pentada con datos estadisticos.
+  fechas.procesables <- seq.pentadas(fecha.primeros.datos, fecha.ultimos.datos)
+  
+  # Determinar que fechas pertenecen a la misma pentada del ano.
+  # Esas fechas tiene los mismos parametros. De este modo, optimizamos calculos.
+  fechas.pentada.ano <- fecha.a.pentada.ano(fechas.procesables)
+  pentadas.unicas    <- sort(unique(fechas.pentada.ano))
+  
+  
+  ################################
+  ## Inicio del cálculo de índices
   
   # Ejecutar calculo para cada configuracion.
   # Cada configuracion es una combinacion unica de indice, escala, distribucion,
@@ -107,10 +129,6 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
       # Obtener estadisticas para esa escala de tiempo
       estadisticas.variables <- estadisticas.variables.completas %>%
         dplyr::filter(ancho_ventana_pentadas == configuracion.indice$escala * 6)
-      
-      # No hay indices calculados para ningun periodo.
-      # Procesar desde la primera pentada con datos estadisticos.
-      fechas.procesables <- seq.pentadas(fecha.primeros.datos, fecha.ultimos.datos)
       
       #### ----------------------------------------------------------------------#
       #### Para cada fecha procesable:
@@ -137,10 +155,6 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
       ####    iii. Guardar valor de indice y percentil asociado en base de datos.
       #### ----------------------------------------------------------------------#
       
-      # Primero determinar que fechas pertenecen a la misma pentada del ano.
-      # Esas fechas tiene los mismos parametros. De este modos, optimizamos calculos.
-      fechas.pentada.ano <- fecha.a.pentada.ano(fechas.procesables)
-      pentadas.unicas    <- sort(unique(fechas.pentada.ano))
       #script$info(glue::glue("Calculando indices de sequia de la ubicación {ubicacion$point_id} ",
       #                       "para la configuración {configuracion.indice$id}"))
       
@@ -200,6 +214,54 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
       }
     }
   )
+  
+  # Leer todos los archivos con resultados de tests, crear un único tibble
+  # con todos los datos en esos archivos y guardarlos en solo dos archivos
+  indice_resultados_tests <- purrr::map_dfr(
+    .x = seq(from = 1, to = nrow(configuraciones.indice)),
+    .f = function(row_index) {
+      configuracion.indice <- configuraciones.indice[row_index, ]
+      resultados_tests_conf <- purrr::map_dfr(
+        .x = pentadas.unicas,
+        .f = function(pentada.ano) { 
+          resultados_tests_conf_pent <- NULL
+          pentada.fin <- fecha.a.pentada.ano(fechas.procesables[which(fechas.pentada.ano == pentada.ano)][1])
+          file_name <- glue::glue("{config$dir$data}/control/resultados_tests/",
+                                  "resultados_tests_{ubicacion %>% dplyr::pull(!!id_column)}_",
+                                  "{configuracion.indice$id}_{pentada.fin}.feather")
+          resultados_tests_conf_pent <- feather::read_feather(file_name) %>%
+            dplyr::mutate_if(is.factor, as.character)
+          base::file.remove(file_name); base::remove(file_name)
+          return(resultados_tests_conf_pent)
+        })
+      return(resultados_tests_conf)
+    })
+  feather::write_feather(indice_resultados_tests, glue::glue("{config$dir$data}/{config$files$indices_sequia$result_tst}"))
+  
+  # Leer todos los archivos con parametros de indices, crear un único tibble
+  # con todos los datos en esos archivos y guardarlos en un solo archivo
+  indice_parametros <- purrr::map_dfr(
+    .x = seq(from = 1, to = nrow(configuraciones.indice)),
+    .f = function(row_index) {
+      configuracion.indice <- configuraciones.indice[row_index, ]
+      parametros_conf <- purrr::map_dfr(
+        .x = pentadas.unicas,
+        .f = function(pentada.ano) { 
+          parametros_conf_pent <- NULL
+          pentada.fin <- fecha.a.pentada.ano(fechas.procesables[which(fechas.pentada.ano == pentada.ano)][1])
+          file_name <- glue::glue("{config$dir$data}/control/parametros/",
+                                  "parametros_{ubicacion %>% dplyr::pull(!!id_column)}_",
+                                  "{configuracion.indice$id}_{pentada.fin}.feather")
+          if(base::file.exists(file_name)) {
+            parametros_conf_pent <- feather::read_feather(file_name) %>%
+              dplyr::mutate_if(is.factor, as.character)
+            base::file.remove(file_name); base::remove(file_name)
+          }
+          return(parametros_conf_pent)
+        })
+      return(parametros_conf)
+    })
+  feather::write_feather(indice_parametros, glue::glue("{config$dir$data}/{config$files$indices_sequia$parametros}"))
   
   return (resultado)
 }
@@ -311,6 +373,9 @@ AjustarParametrosUbicacionFecha <- function(ubicacion, fecha.procesable, configu
                     indice_configuracion_id = configuracion.indice$id, 
                     metodo_imputacion_id = 0, pentada_fin = pentada.fin) %>%
       dplyr::select(indice_configuracion_id, !!id_column, pentada_fin, parametro, metodo_imputacion_id, valor)
+    feather::write_feather(resultado.tests, glue::glue("{config$dir$data}/control/parametros/",
+                                                       "parametros_{ubicacion %>% dplyr::pull(!!id_column)}_",
+                                                       "{configuracion.indice$id}_{pentada.fin}.feather"))
   }
   
   return (parametros.ajuste)

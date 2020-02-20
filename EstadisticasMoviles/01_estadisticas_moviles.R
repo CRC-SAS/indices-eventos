@@ -92,11 +92,15 @@ script$start()
 script$info("Leyendo netcdf con datos de entrada")
 netcdf_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
 points_filename <- glue::glue("{config$dir$data}/{config$files$puntos_a_extraer}")
-if (is.null(points_filename))
-  datos_climaticos_generados <- gamwgen::netcdf.as.sf(netcdf_filename)
-if (!is.null(points_filename))
+if (is.null(config$files$puntos_a_extraer))
+  datos_climaticos_generados <- gamwgen::netcdf.as.sf(netcdf_filename, add.id = T)
+if (!is.null(config$files$puntos_a_extraer))
   datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
 script$info("Lectura del netcdf finalizada")
+
+# x) Reducción de trabajo (solo para pruebas)
+datos_climaticos_generados <- datos_climaticos_generados %>%
+  dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
 
 # f) Fechas mínima y máxima
 fecha.minima <- min(datos_climaticos_generados$date)

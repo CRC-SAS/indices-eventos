@@ -1,8 +1,19 @@
 
-
 # ------------------------------------------------------------------------------
-# Archivos con datos de entrada (generados previamente)
+# Definicion de parametros para buscar eventos
 # ------------------------------------------------------------------------------
-# Archivo con los índices de sequia 
-archivo.con.indices.sequia: "indices_sequia.feather"
+eventos:
+#  configuracion:                   # En caso que se deba correr la identificación para una sola configuración
+#    indice: SPEI                       # Indice que utilizaremos para calcular eventos
+#    escala: 3                         # Valor expresado en meses
+#    metodo_ajuste: 'L-Momentos-UB-PWM'       # Metodo de ajuste de indice seleccionado
+#    distribucion: 'Log-Logistica'             # Distribucion de ajuste del indice
+#    referencia_comienzo: '1971-01-01' # Fecha de inicio del periodo de referencia
+#    referencia_fin: '2010-12-31'      # Fecha de fin del periodo de referencia
+  secos:
+    umbral: -0.5
+    duracion_minima: 2 # Valor expresado en pentadas
+  humedos:
+    umbral: 0.5
+    duracion_minima: 2 # Valor expresado en pentadas
 # ------------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 # --- Funciones a ejecutar por parte de cada worker ----
 # -----------------------------------------------------------------------------#
 
-CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configuraciones.indice, estadisticas.moviles) {
+CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configuraciones.indices, estadisticas.moviles) {
   # Obtener la ubicación para la cual se calcularán los índices
   ubicacion <- input.value
   
@@ -121,10 +121,10 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
   # Cada configuracion es una combinacion unica de indice, escala, distribucion,
   # metodo de ajuste y periodo de referencia.
   resultado <- purrr::map_dfr(
-    .x = seq(from = 1, to = nrow(configuraciones.indice)),
+    .x = seq(from = 1, to = nrow(configuraciones.indices)),
     .f = function(row_index) {
       # Obtener configuracion de calculo
-      configuracion.indice <- configuraciones.indice[row_index, ]
+      configuracion.indice <- configuraciones.indices[row_index, ]
       
       # Obtener estadisticas para esa escala de tiempo
       estadisticas.variables <- estadisticas.variables.completas %>%
@@ -218,9 +218,9 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
   # Leer todos los archivos con resultados de tests, crear un único tibble
   # con todos los datos en esos archivos y guardarlos en solo dos archivos
   indice_resultados_tests <- purrr::map_dfr(
-    .x = seq(from = 1, to = nrow(configuraciones.indice)),
+    .x = seq(from = 1, to = nrow(configuraciones.indices)),
     .f = function(row_index) {
-      configuracion.indice <- configuraciones.indice[row_index, ]
+      configuracion.indice <- configuraciones.indices[row_index, ]
       resultados_tests_conf <- purrr::map_dfr(
         .x = pentadas.unicas,
         .f = function(pentada.ano) { 
@@ -241,9 +241,9 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
   # Leer todos los archivos con parametros de indices, crear un único tibble
   # con todos los datos en esos archivos y guardarlos en un solo archivo
   indice_parametros <- purrr::map_dfr(
-    .x = seq(from = 1, to = nrow(configuraciones.indice)),
+    .x = seq(from = 1, to = nrow(configuraciones.indices)),
     .f = function(row_index) {
-      configuracion.indice <- configuraciones.indice[row_index, ]
+      configuracion.indice <- configuraciones.indices[row_index, ]
       parametros_conf <- purrr::map_dfr(
         .x = pentadas.unicas,
         .f = function(pentada.ano) { 

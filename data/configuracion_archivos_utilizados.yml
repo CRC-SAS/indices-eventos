@@ -6,8 +6,8 @@
 # Archivos con datos de entrada 
 # ------------------------------------------------------------------------------
 # NetCDF generado por el paquete gamwgen, con los datos climaticos generados.
-clima_generado: "input/gen_climate.nc"
-puntos_a_extraer: "input/points_to_extract.rds" # debe ser un objeto sf (puede ser NULL)
+clima_generado: "input/gen_climate_junin.nc"
+puntos_a_extraer: NULL # debe ser un objeto sf (puede ser NULL)
 # ------------------------------------------------------------------------------
 
 
@@ -30,9 +30,17 @@ indices_sequia:
   configuraciones: "partial/configuraciones_indice_sequia.feather"
 
   # PASO 3 -- proyecto: IndicesSequia, script: 02_calcular_indices.R
-  # Archivo con las configuraciones generadas para el cálculo de índices de sequia
-  resultados: "partial/resultados_indice_sequia.feather"
+  # Archivo con los resultados, parametros y tests del cálculo de índices
+  resultados: "output/resultados_indice_sequia.feather"
   parametros: "partial/parametros_indice_sequia.feather"
   result_tst: "partial/resultados_tests_indice_sequia.feather"
+
+# PASO 4 -- proyecto: IdentificarEventos
+identificar_eventos:
+
+  # PASO 4 -- proyecto: IdentificarEventos, script: 01_identificar_eventos.R
+  # Archivo con los resultados de la identificación de eventos
+  resultados: "output/resultados_identificar_eventos.feather"
+
   
 # ------------------------------------------------------------------------------

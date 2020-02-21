@@ -2,11 +2,7 @@
 # --- PASO 1. Cargar paquetes necesarios ----
 rm(list = ls()); gc()
 Sys.setenv(TZ = "UTC")
-list.of.packages <- c("ADGofTest", "caret", "dplyr", "fitdistrplus", "lmomco", "logspline",
-                      "lubridate", "magrittr", "mgcv", "purrr", "SCI", "sirad", "SPEI", 
-                      "stats", "stringr", "utils", "WRS2", "yaml", "yardstick", "feather",
-                      "R6", "futile.logger", "mgcv", "doSNOW", "foreach", "snow", "parallel",
-                      "RPostgres", "ncdf4")
+list.of.packages <- c("dplyr")
 for (pack in list.of.packages) {
   if (!require(pack, character.only = TRUE)) {
     stop(paste0("Paquete no encontrado: ", pack))
@@ -28,13 +24,13 @@ normalize_dirnames <- function(dirnames) {
     return (dirnames)
 }
 
-# a) YAML de configuracion del cálculo de índices de sequia
+# a) YAML de configuracion de la identificación de eventos
 args <- base::commandArgs(trailingOnly = TRUE)
 if (length(args) > 0) {
   archivo.config <- args[1]
 } else {
   # No vino el archivo de configuracion por linea de comandos. Utilizo un archivo default
-  archivo.config <- paste0(getwd(), "/configuracion_calculador_indices.yml")
+  archivo.config <- paste0(getwd(), "/configuracion_identificar_eventos.yml")
 }
 if (! file.exists(archivo.config)) {
   stop(paste0("El archivo de configuración ", archivo.config, " no existe\n"))
@@ -44,12 +40,12 @@ if (! file.exists(archivo.config)) {
   config$dir <- normalize_dirnames(config$dir)
 }
 
-# b) YAML de parametros del cálculo de índices de sequia
+# b) YAML de parametros de la identificación de eventos
 if (length(args) > 1) {
   archivo.params <- args[2]
 } else {
   # No vino el archivo de configuracion por linea de comandos. Utilizo un archivo default
-  archivo.params <- paste0(getwd(), "/parametros_calculador_indices.yml")
+  archivo.params <- paste0(getwd(), "/parametros_identificar_eventos.yml")
 }
 if (! file.exists(archivo.params)) {
   stop(paste0("El archivo de parámetros ", archivo.params, " no existe\n"))
@@ -86,21 +82,18 @@ source(glue::glue("{config$dir$lib}/Task.R"), echo = FALSE)
 source(glue::glue("{config$dir$lib}/Helpers.R"), echo = FALSE)
 
 # b. Carga de codigo para ajuste de distribuciones, calculo de indices y ejecucion distribuida
-source(glue::glue("{config$dir$base}/lib/funciones_ajuste.R"), echo = FALSE)
-source(glue::glue("{config$dir$base}/lib/funciones_calculo.R"), echo = FALSE)
-source(glue::glue("{config$dir$base}/lib/funciones_test_ajuste.R"), echo = FALSE)
-source(glue::glue("{config$dir$base}/lib/funciones_worker.R"), echo = FALSE)
+source(glue::glue("{config$dir$base}/lib/funciones_eventos.R"), echo = FALSE)
 
-# c) Chequear que no este corriendo el script de estadisticas.
+# c) Chequear que no este corriendo el script de índices de sequia.
 #    Si esta corriendo, la ejecucion debe cancelarse.
-script.estadisticas <- Script$new(run.dir = config$dir$estadisticas$run,
-                                   name = "EstadisticaMovil")
-script.estadisticas$assertNotRunning()
-rm(script.estadisticas)
+script.indices.sequia <- Script$new(run.dir = config$dir$indices.sequia$run,
+                                    name = "IndicesSequia")
+script.indices.sequia$assertNotRunning()
+rm(script.indices.sequia)
 
 # d) Iniciar script y obtener fecha de ejecucion
 script <- Script$new(run.dir = config$dir$run,
-                     name = "IndicesGenerador")
+                     name = "IdentificarEventos")
 script$start()
 
 # e) Obtener configuraciones para el cálculo de los indices de sequía
@@ -108,10 +101,10 @@ script$info("Buscando configuraciones para los índices a ser calculados")
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
 configuraciones.indices <- feather::read_feather(archivo); rm(archivo)
 
-# f) Buscar las estadisticas moviles 
-script$info("Buscando estadísticas móviles para calcular indices de sequia")
-archivo <- glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$resultados}")
-estadisticas.moviles <- feather::read_feather(archivo); rm(archivo)
+# f) Buscar los resultados del cálculo de índices de sequía
+script$info("Buscando resultados del cálculo de índices de sequía")
+archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$resultados}")
+resultados.indices.sequia <- feather::read_feather(archivo); rm(archivo)
 
 # g) Buscar ubicaciones a las cuales se aplicara el calculo de indices de sequia
 # g.1) Obtener datos producidos por el generador y filtrarlos
@@ -124,8 +117,8 @@ if (!is.null(config$files$puntos_a_extraer))
   datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
 script$info("Lectura del netcdf finalizada")
 # g.x) Reducción de trabajo (solo para pruebas)
-# datos_climaticos_generados <- datos_climaticos_generados %>%
-#   dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
+datos_climaticos_generados <- datos_climaticos_generados %>%
+  dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
 # g.2) Generar tibble con ubicaciones sobre las cuales iterar
 script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
@@ -143,27 +136,29 @@ script$info("Obtención finalizada")
 # -----------------------------------------------------------------------------#
 
 # Crear tarea distribuida y ejecutarla
-task.indices.sequia <- Task$new(parent.script = script,
-                                func.name = "CalcularIndicesSequiaUbicacion",
-                                packages = list.of.packages)
+task.identificar.eventos <- Task$new(parent.script = script,
+                                     func.name = "IdentificarEventos",
+                                     packages = list.of.packages)
 
 # Ejecutar tarea distribuida
-script$info("Calculando indices de sequia")
-resultados.indices.sequia <- task.indices.sequia$run(number.of.processes = config$max.procesos, 
-                                                     config = config, input.values = ubicaciones_a_procesar, 
-                                                     configuraciones.indices, estadisticas.moviles)
+script$info("Identificando Eventos")
+cantidad.de.realizaciones <- datos_climaticos_generados %>% dplyr::pull(realization) %>% base::unique()
+resultados.identificar.eventos <- task.identificar.eventos$run(number.of.processes = config$max.procesos, 
+                                                               config = config, input.values = ubicaciones_a_procesar,
+                                                               configuraciones.indices, resultados.indices.sequia,
+                                                               numero.realizaciones = cantidad.de.realizaciones)
 
 # Transformar resultados a un objeto de tipo tibble
-resultados.indices.sequia.tibble <- resultados.indices.sequia %>% purrr::map_dfr(~.x)
+resultados.identificar.eventos.tibble <- resultados.identificar.eventos %>% purrr::map_dfr(~.x)
 
 # Guardar resultados en un archivo fácil de compartir
-feather::write_feather(resultados.indices.sequia.tibble, 
-                       glue::glue("{config$dir$data}/{config$files$indices_sequia$resultados}"))
+feather::write_feather(resultados.identificar.eventos.tibble, 
+                       glue::glue("{config$dir$data}/{config$files$identificar_eventos$resultados}"))
 
 # Si hay errores, terminar ejecucion
-task.indices.sequia.errors <- task.indices.sequia$getErrors()
-if (length(task.indices.sequia.errors) > 0) {
-  for (error.obj in task.indices.sequia.errors) {
+task.identificar.eventos.errors <- task.identificar.eventos$getErrors()
+if (length(task.identificar.eventos.errors) > 0) {
+  for (error.obj in task.identificar.eventos.errors) {
     id_column <- IdentificarIdColumn(ubicaciones_a_procesar %>% dplyr::top_n(1))
     script$warn(glue::glue("({id_column}={error.obj$input.value[[id_column]]}): {error.obj$error}"))
   }

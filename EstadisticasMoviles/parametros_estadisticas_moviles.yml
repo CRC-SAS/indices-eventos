@@ -5,7 +5,7 @@
 # realizar la agregacion. Se utilizan anchos de ventana en relacion a los indices
 # de sequia a calcular: 1, 2, 3, 6, 9, 12, 18, 24, 36 y 48 meses. Pasado a pentadas, 
 # los valores correspondientes son: 6, 12, 18, 36, 54, 72, 108, 144, 216 y 288.
-ancho.ventana: [ 6 ]
+ancho.ventana: [ 1, 2, 3, 6, 9, 12, 18, 24, 36, 48 ]
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------

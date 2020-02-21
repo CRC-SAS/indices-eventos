@@ -103,15 +103,20 @@ script <- Script$new(run.dir = config$dir$run,
                      name = "IndicesGenerador")
 script$start()
 
-# e) Obtener configuraciones para el cálculo de los indices de sequía
-script$info("Buscando configuraciones para los índices a ser calculados")
-archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
-configuraciones.indices <- feather::read_feather(archivo); rm(archivo)
-
-# f) Buscar las estadisticas moviles 
+# e) Buscar las estadisticas moviles 
 script$info("Buscando estadísticas móviles para calcular indices de sequia")
 archivo <- glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$resultados}")
 estadisticas.moviles <- feather::read_feather(archivo); rm(archivo)
+
+# f) Obtener configuraciones para el cálculo de los indices de sequía
+script$info("Buscando configuraciones para los índices a ser calculados")
+archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
+configuraciones.indices <- feather::read_feather(archivo); rm(archivo)
+script$info("Excluyendo configuraciones para las que no hay estadísticas móviles")
+configuraciones.indices <- configuraciones.indices %>%
+  dplyr::inner_join(estadisticas.moviles %>% dplyr::distinct(ancho_ventana_pentadas) %>% 
+                      dplyr::mutate(ancho_ventana_pentadas = ancho_ventana_pentadas/6),
+                    by = c("escala" = "ancho_ventana_pentadas"))
 
 # g) Buscar ubicaciones a las cuales se aplicara el calculo de indices de sequia
 # g.1) Obtener datos producidos por el generador y filtrarlos

@@ -96,15 +96,18 @@ script <- Script$new(run.dir = config$dir$run,
                      name = "IdentificarEventos")
 script$start()
 
-# e) Obtener configuraciones para el cálculo de los indices de sequía
-script$info("Buscando configuraciones para los índices a ser calculados")
-archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
-configuraciones.indices <- feather::read_feather(archivo); rm(archivo)
-
-# f) Buscar los resultados del cálculo de índices de sequía
+# e) Buscar los resultados del cálculo de índices de sequía
 script$info("Buscando resultados del cálculo de índices de sequía")
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$resultados}")
 resultados.indices.sequia <- feather::read_feather(archivo); rm(archivo)
+
+# f) Obtener configuraciones para el cálculo de los indices de sequía
+script$info("Buscando configuraciones para los índices a ser calculados")
+archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
+configuraciones.indices <- feather::read_feather(archivo); rm(archivo)
+script$info("Excluyendo configuraciones no contempladas al calcular los índices de sequía")
+configuraciones.indices <- configuraciones.indices %>%
+  dplyr::inner_join(resultados.indices.sequia %>% dplyr::distinct(escala), by = "escala")
 
 # g) Buscar ubicaciones a las cuales se aplicara el calculo de indices de sequia
 # g.1) Obtener datos producidos por el generador y filtrarlos

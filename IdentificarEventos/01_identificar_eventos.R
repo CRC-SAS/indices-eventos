@@ -105,12 +105,24 @@ resultados.indices.sequia <- feather::read_feather(archivo); rm(archivo)
 script$info("Buscando configuraciones para los índices a ser calculados")
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
 configuraciones.indices <- feather::read_feather(archivo); rm(archivo)
-script$info("Excluyendo configuraciones no contempladas al calcular los índices de sequía")
+script$info("Seleccionando configuraciones contempladas al calcular los índices de sequía")
 configuraciones.indices <- configuraciones.indices %>%
-  dplyr::inner_join(resultados.indices.sequia %>% dplyr::distinct(escala), by = "escala")
+  dplyr::filter(escala %in% resultados.indices.sequia$escala)
 
-# g) Buscar ubicaciones a las cuales se aplicara el calculo de indices de sequia
-# g.1) Obtener datos producidos por el generador y filtrarlos
+# g) Verificar que hayan configuraciones para todas las escalas en resultados.indices.sequia
+configuraciones.indices <- configuraciones.indices %>%
+  dplyr::group_by(indice, distribucion, metodo_ajuste) %>%
+  dplyr::group_walk(.f = function(g, k) {
+    if (!all(resultados.indices.sequia$escala %in% g$escala)) {
+      stop_msg <- glue::glue("Algunas de las escalas definidas en el archivo parametros_calculador.indices.yml ",
+                             "no están presentes para la configuración con indice:{k$indice}, distribucion:",
+                             "{k$distribucion} y metodo_ajuste:{k$metodo_ajuste}!!")
+      stop(stop_msg)
+    }
+  })
+
+# h) Buscar ubicaciones a las cuales se aplicara el calculo de indices de sequia
+# h.1) Obtener datos producidos por el generador y filtrarlos
 script$info("Leyendo netcdf con datos de entrada")
 netcdf_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
 points_filename <- glue::glue("{config$dir$data}/{config$files$puntos_a_extraer}")
@@ -119,10 +131,10 @@ if (is.null(config$files$puntos_a_extraer))
 if (!is.null(config$files$puntos_a_extraer))
   datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
 script$info("Lectura del netcdf finalizada")
-# g.x) Reducción de trabajo (solo para pruebas)
+# h.x) Reducción de trabajo (solo para pruebas)
 datos_climaticos_generados <- datos_climaticos_generados %>%
   dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
-# g.2) Generar tibble con ubicaciones sobre las cuales iterar
+# h.2) Generar tibble con ubicaciones sobre las cuales iterar
 script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
   dplyr::select(dplyr::ends_with("_id"), longitude, latitude) %>%

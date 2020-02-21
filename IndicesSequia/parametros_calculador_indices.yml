@@ -1,5 +1,15 @@
 
 # ------------------------------------------------------------------------------
+# Escalas para las cuales serán calulados los índices.
+# --- Tener en cuenta que hay una relación entre los anchos de ventana utilizados 
+# --- al calcular las estadísticas móviles y las escalas qpara las cuales se podrán 
+# --- calcular los índices. Para poder calcular índices para una escala x, deben
+# --- haberse calculado estadísticas móviles para el ancho de ventana x*6 !!!
+# ------------------------------------------------------------------------------
+escalas: [ 1, 2, 3, 6, 9, 12, 18, 24, 36, 48 ]
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
 # Maxima proporcion de faltantes para periodo de referencia
 # ------------------------------------------------------------------------------
 min.proporcion.disponibles.referencia: 0.75

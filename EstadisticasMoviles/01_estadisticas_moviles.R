@@ -94,9 +94,19 @@ source(glue::glue("{config$dir$lib}/Script.R"), echo = FALSE)
 source(glue::glue("{config$dir$lib}/Task.R"), echo = FALSE)
 source(glue::glue("{config$dir$lib}/Helpers.R"), echo = FALSE)
 
-# b) Iniciar script
-script <- Script$new(run.dir = config$dir$run, name = "EstadisticaMovil")
+
+# b.1) Definir nombre del script
+script_name <- "EstadisticaMovil"
+script_logfile <- glue::glue("{config$dir$run}/{script_name}.log")
+
+# b.2) borrar archivo .log de corridas anteriores
+if (file.exists(script_logfile))
+  file.remove(script_logfile)
+
+# b.3) Iniciar script
+script <- Script$new(run.dir = config$dir$run, name = script_name, create.appender = T)
 script$start()
+
 
 # c) Obtener datos producidos por el generador y filtrarlos
 script$info("Leyendo netcdf con datos de entrada")
@@ -320,9 +330,20 @@ CalcularEstadisticasUbicacion <- function(input.value, script, config, variables
 # --- PASO 6. Ejecutar cálculo de estadísticas móviles de manera distriuída ----
 # -----------------------------------------------------------------------------#
 
+# Definir nombre de la función a ser distribuida y nombre de archivos .log y .out de corridas anteriores
+function_name <- "CalcularEstadisticasUbicacion"
+task_logfile <- glue::glue("{config$dir$run}/{script_name}-{function_name}.log")
+task_outfile <- glue::glue("{config$dir$run}/{script_name}-{function_name}.out")
+
+# Borrar archivos .log y .out de corridas anteriores
+if (file.exists(task_logfile))
+  file.remove(task_logfile)
+if (file.exists(task_outfile))
+  file.remove(task_outfile)
+
 # Crear tarea distribuida y ejecutarla
 task.estadisticas <- Task$new(parent.script = script,
-                              func.name = "CalcularEstadisticasUbicacion",
+                              func.name = function_name,
                               packages = list.of.packages)
 
 # Informar inicio de ejecución 
@@ -335,6 +356,9 @@ resultados.estadisticas <- task.estadisticas$run(number.of.processes = config$ma
                                                  fecha.minima.inicio.pentada = fecha.minima.inicio.pentada,
                                                  fecha.maxima.inicio.pentada = fecha.maxima.inicio.pentada,
                                                  datos_climaticos_completos = datos_climaticos_generados)
+
+# Agregar log de la tarea al log del script
+file.append(script_logfile, task_logfile)
 
 # Transformar resultados a un objeto de tipo tibble
 resultados.estadisticas.tibble <- resultados.estadisticas %>% purrr::map_dfr(~.x)
@@ -357,6 +381,14 @@ if (length(task.estadisticas.errors) > 0) {
 # -----------------------------------------------------------------------------#
 # --- PASO 7. Finalizar script ----
 # -----------------------------------------------------------------------------#
+
 # a) Finalizar script
 script$stop()
+
+# b) Crear archivo .info
+info_filename <- glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$info_corrida}")
+if (file.exists(info_filename))
+  file.remove(info_filename)
+file.copy(from = script_logfile, to = info_filename)
+
 # ------------------------------------------------------------------------------

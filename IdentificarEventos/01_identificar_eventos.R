@@ -101,10 +101,19 @@ script.indices.sequia <- Script$new(run.dir = config$dir$indices.sequia$run,
 script.indices.sequia$assertNotRunning()
 rm(script.indices.sequia)
 
-# d) Iniciar script y obtener fecha de ejecucion
-script <- Script$new(run.dir = config$dir$run,
-                     name = "IdentificarEventos")
+
+# d.1) Definir nombre del script
+script_name <- "IdentificarEventos"
+script_logfile <- glue::glue("{config$dir$run}/{script_name}.log")
+
+# d.2) borrar archivo .log de corridas anteriores
+if (file.exists(script_logfile))
+  file.remove(script_logfile)
+
+# d.3) Iniciar script
+script <- Script$new(run.dir = config$dir$run, name = script_name, create.appender = T)
 script$start()
+
 
 # e) Buscar los resultados del cálculo de índices de sequía
 script$info("Buscando resultados del cálculo de índices de sequía")
@@ -157,12 +166,23 @@ script$info("Obtención finalizada")
 # ------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------#
-# --- PASO 4. Calcular indices de sequia ----
+# --- PASO 4. Calcular indices de sequia de manera distriuída ----
 # -----------------------------------------------------------------------------#
+
+# Definir nombre de la función a ser distribuida y nombre de archivos .log y .out de corridas anteriores
+function_name <- "IdentificarEventos"
+task_logfile <- glue::glue("{config$dir$run}/{script_name}-{function_name}.log")
+task_outfile <- glue::glue("{config$dir$run}/{script_name}-{function_name}.out")
+
+# Borrar archivos .log y .out de corridas anteriores
+if (file.exists(task_logfile))
+  file.remove(task_logfile)
+if (file.exists(task_outfile))
+  file.remove(task_outfile)
 
 # Crear tarea distribuida y ejecutarla
 task.identificar.eventos <- Task$new(parent.script = script,
-                                     func.name = "IdentificarEventos",
+                                     func.name = function_name,
                                      packages = list.of.packages)
 
 # Ejecutar tarea distribuida
@@ -172,6 +192,9 @@ resultados.identificar.eventos <- task.identificar.eventos$run(number.of.process
                                                                config = config, input.values = ubicaciones_a_procesar,
                                                                configuraciones.indices, resultados.indices.sequia,
                                                                numero.realizaciones = cantidad.de.realizaciones)
+
+# Agregar log de la tarea al log del script
+file.append(script_logfile, task_logfile)
 
 # Transformar resultados a un objeto de tipo tibble
 resultados.identificar.eventos.tibble <- resultados.identificar.eventos %>% purrr::map_dfr(~.x)
@@ -192,9 +215,16 @@ if (length(task.identificar.eventos.errors) > 0) {
 # ------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------#
-# --- PASO 6. Finalizar script cerrando conexion a base de datos ----
+# --- PASO 5. Finalizar script ----
 # -----------------------------------------------------------------------------#
 
 # a) Finalizar script
 script$stop()
+
+# b) Crear archivo .info
+info_filename <- glue::glue("{config$dir$data}/{config$files$identificar_eventos$info_corrida}")
+if (file.exists(info_filename))
+  file.remove(info_filename)
+file.copy(from = script_logfile, to = info_filename)
+
 # ------------------------------------------------------------------------------

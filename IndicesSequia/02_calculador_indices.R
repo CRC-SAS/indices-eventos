@@ -108,10 +108,19 @@ script.estadisticas <- Script$new(run.dir = config$dir$estadisticas$run,
 script.estadisticas$assertNotRunning()
 rm(script.estadisticas)
 
-# d) Iniciar script y obtener fecha de ejecucion
-script <- Script$new(run.dir = config$dir$run,
-                     name = "IndicesGenerador")
+
+# b.1) Definir nombre del script
+script_name <- "IndicesGenerador"
+script_logfile <- glue::glue("{config$dir$run}/{script_name}.log")
+
+# b.2) borrar archivo .log de corridas anteriores
+if (file.exists(script_logfile))
+  file.remove(script_logfile)
+
+# b.3) Iniciar script
+script <- Script$new(run.dir = config$dir$run, name = script_name, create.appender = T)
 script$start()
+
 
 # e) Buscar las estadisticas moviles 
 script$info("Buscando estadísticas móviles para calcular indices de sequia")
@@ -173,12 +182,23 @@ script$info("Obtención finalizada")
 # ------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------#
-# --- PASO 4. Calcular indices de sequia ----
+# --- PASO 4. Calcular indices de sequia de manera distriuída ----
 # -----------------------------------------------------------------------------#
+
+# Definir nombre de la función a ser distribuida y nombre de archivos .log y .out de corridas anteriores
+function_name <- "CalcularIndicesSequiaUbicacion"
+task_logfile <- glue::glue("{config$dir$run}/{script_name}-{function_name}.log")
+task_outfile <- glue::glue("{config$dir$run}/{script_name}-{function_name}.out")
+
+# Borrar archivos .log y .out de corridas anteriores
+if (file.exists(task_logfile))
+  file.remove(task_logfile)
+if (file.exists(task_outfile))
+  file.remove(task_outfile)
 
 # Crear tarea distribuida y ejecutarla
 task.indices.sequia <- Task$new(parent.script = script,
-                                func.name = "CalcularIndicesSequiaUbicacion",
+                                func.name = function_name,
                                 packages = list.of.packages)
 
 # Ejecutar tarea distribuida
@@ -186,6 +206,9 @@ script$info("Calculando indices de sequia")
 resultados.indices.sequia <- task.indices.sequia$run(number.of.processes = config$max.procesos, 
                                                      config = config, input.values = ubicaciones_a_procesar, 
                                                      configuraciones.indices, estadisticas.moviles)
+
+# Agregar log de la tarea al log del script
+file.append(script_logfile, task_logfile)
 
 # Transformar resultados a un objeto de tipo tibble
 resultados.indices.sequia.tibble <- resultados.indices.sequia %>% purrr::map_dfr(~.x)
@@ -211,4 +234,11 @@ if (length(task.indices.sequia.errors) > 0) {
 
 # a) Finalizar script
 script$stop()
+
+# b) Crear archivo .info
+info_filename <- glue::glue("{config$dir$data}/{config$files$indices_sequia$info_corrida}")
+if (file.exists(info_filename))
+  file.remove(info_filename)
+file.copy(from = script_logfile, to = info_filename)
+
 # ------------------------------------------------------------------------------

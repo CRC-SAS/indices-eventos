@@ -120,7 +120,10 @@ Task <- R6Class("Task",
       log.file <- paste0(private$parent.script$getRunDir(), "/", 
                          private$parent.script$getName(), "-",
                          private$func.name, ".log")
-      loginit <- function(logfile) flog.appender(appender.file(logfile))
+      loginit <- function(logfile) {
+        flog.layout(futile.logger::layout.format('[~l] [~t] * ~m'))
+        flog.appender(appender.file(logfile))
+      }
       foreach(input=rep(log.file, number.of.processes), .packages='futile.logger') %dopar% loginit(input)
 
       # 4. Ejecutar procesamiento paralelo e informar resultados

@@ -7,7 +7,7 @@
 # ------------------------------------------------------------------------------
 # NetCDF generado por el paquete gamwgen, con los datos climaticos generados.
 clima_generado: "input/gen_climate_junin.nc"
-puntos_a_extraer: NULL # debe ser un objeto sf (puede ser NULL)
+puntos_a_extraer: "input/points_to_extract_junin.rds" # debe ser un objeto sf (puede ser NULL)
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------

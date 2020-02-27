@@ -112,15 +112,20 @@ script$start()
 script$info("Leyendo netcdf con datos de entrada")
 netcdf_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
 points_filename <- glue::glue("{config$dir$data}/{config$files$puntos_a_extraer}")
-if (is.null(config$files$puntos_a_extraer))
+if (is.null(config$files$puntos_a_extraer)) {
+  script$info("No se especificaron ubicaciones a extraer del netcdf")
+  script$info(glue::glue("Inicia la lectura del netcdf: {config$files$clima_generado}"))
   datos_climaticos_generados <- gamwgen::netcdf.as.sf(netcdf_filename, add.id = T)
-if (!is.null(config$files$puntos_a_extraer))
+} else {
+  script$info(glue::glue("Las ubicaciones a extraer del netcdf se detallan en: {config$files$puntos_a_extraer}"))
+  script$info(glue::glue("Inicia la lectura del netcdf: {config$files$clima_generado}"))
   datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
+}
 script$info("Lectura del netcdf finalizada")
 
 # x) Reducción de trabajo (solo para pruebas)
-# datos_climaticos_generados <- datos_climaticos_generados %>%
-#   dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
+datos_climaticos_generados <- datos_climaticos_generados %>%
+  dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1991-01-01'), as.Date('2000-12-31')) )
 
 # f) Fechas mínima y máxima
 fecha.minima <- min(datos_climaticos_generados$date)
@@ -145,7 +150,7 @@ script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
   dplyr::select(dplyr::ends_with("_id"), longitude, latitude) %>%
   sf::st_drop_geometry() %>% tibble::as_tibble() %>% dplyr::distinct()
-script$info("Obtención finalizada")
+script$info("Obtención de ubicaciones a iterar finalizada")
 
 # ------------------------------------------------------------------------------
 
@@ -377,8 +382,9 @@ file.append(script_logfile, task_logfile)
 resultados.estadisticas.tibble <- resultados.estadisticas %>% purrr::map_dfr(~.x)
 
 # Guardar resultados en un archivo fácil de compartir
-feather::write_feather(resultados.estadisticas.tibble, 
-                       glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$resultados}"))
+results_filename <- glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$resultados}")
+script$info(glue::glue("Guardando resultados en el archivo {results_filename}"))
+feather::write_feather(resultados.estadisticas.tibble, results_filename)
 
 # Si hay errores, terminar ejecucion
 task.estadisticas.errors <- task.estadisticas$getErrors()

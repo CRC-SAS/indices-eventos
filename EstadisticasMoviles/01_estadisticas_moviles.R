@@ -161,17 +161,25 @@ ContarDisponibles <- function(x) {
 CalcularOcurrencia <- function(x, umbral) {
   return (length(which(x >= umbral)))
 }
-CalcularEstadisticasUbicacionVariable  <- function(variable, fechas.procesables, ubicacion,
-                                                   datos.climaticos, ancho.ventana, parametros) {
+CalcularEstadisticasUbicacionVariable  <- function(variable, script, fechas.procesables, ubicacion,
+                                                   datos.climaticos, ancho.ventana.pentadas, parametros) {
   
   # Identificar la columna con el id de la ubicación (usualmente station_id, o point_id)
   id_column <- IdentificarIdColumn(ubicacion)
+  
+  # Informar estado de la ejecución
+  script$info(glue::glue("Procesando estadisticas para la ubicación: ",
+                         "{ubicacion %>% dplyr::pull(!!id_column)}, pentada: ",
+                         "{ancho.ventana.pentadas}, variable: {variable}"))
+  
+  # Se pasa el ancho de ventana en péntada a un ancho de ventana en días
+  ancho.ventana.dias <- ancho.ventana.pentadas*6
   
   # Definir parametros para variables
   politicas.ventana        <- purrr::keep(
     .x = parametros$faltantes, 
     .p = function(politica) { 
-      return (politica$ancho.ventana == ancho.ventana) }
+      return (politica$ancho.ventana.dias == ancho.ventana.dias) }
   )[[1]]$politica
   parametros.faltantes     <- politicas.ventana[[variable]]
   estadisticos.calculables <- parametros$estadisticos[[variable]]
@@ -256,7 +264,8 @@ CalcularEstadisticasUbicacionVariable  <- function(variable, fechas.procesables,
   )
   
   return (ubicacion %>% dplyr::select(dplyr::ends_with("_id")) %>%
-            dplyr::mutate(variable_id = variable, ancho_ventana_pentadas = ancho.ventana) %>%
+            dplyr::mutate(variable_id = variable, ancho_ventana_dias = ancho.ventana.dias, 
+                          ancho_ventana_pentadas = ancho.ventana.pentadas) %>%
             tidyr::crossing(estadisticos_x_fechas_procesables))
 }
 CalcularEstadisticasUbicacion <- function(input.value, script, config, variables,
@@ -280,15 +289,18 @@ CalcularEstadisticasUbicacion <- function(input.value, script, config, variables
   # Sabiendo la fecha minima de inicio de la pentada y la fecha maxima, calcular fechas procesables para cada ancho de ventana.
   # Calcular estadisticos por variable y ancho de ventana.
   estadisticas.ubicacion  <- purrr::map_dfr(
-    .x = config$params$ancho.ventana,
-    .f = function(ancho.ventana) {
+    .x = config$params$ancho.ventana.pentadas,
+    .f = function(ancho.ventana.pentadas) {
+      # Informar estado de la ejecución
+      script$info(glue::glue("Procesando estadisticas para la ubicación: ",
+                             "{ubicacion %>% dplyr::pull(!!id_column)}, pentada: {ancho.ventana.pentadas}"))
       # Genero un data frame de fechas procesables con 2 columnas: fecha inicio, fecha fin
       fechas.procesables.inicio <- seq.pentadas(fecha.minima.inicio.pentada, fecha.maxima.inicio.pentada)
       fechas.procesables        <- purrr::map_dfr(
         .x = fechas.procesables.inicio,
         .f = function(fecha) {
           fecha.inicio.ventana <- fecha
-          fecha.fin.ventana    <- fecha.fin.pentada(sumar.pentadas(fecha.inicio.ventana, ancho.ventana - 1))
+          fecha.fin.ventana    <- fecha.fin.pentada(sumar.pentadas(fecha.inicio.ventana, ancho.ventana.pentadas - 1))
           return (data.frame(fecha.inicio = fecha.inicio.ventana, fecha.fin = fecha.fin.ventana))
         }
       ) %>% dplyr::filter(fecha.fin <= fecha.fin.pentada(fecha.maxima.inicio.pentada))
@@ -299,10 +311,11 @@ CalcularEstadisticasUbicacion <- function(input.value, script, config, variables
         estadisticas <- purrr::map_dfr(
           .x = variables,
           .f = CalcularEstadisticasUbicacionVariable,
+          script = script,
           fechas.procesables = fechas.procesables, 
           ubicacion = ubicacion,
           datos.climaticos = datos.climaticos,
-          ancho.ventana = ancho.ventana,
+          ancho.ventana.pentadas = ancho.ventana.pentadas,
           parametros = config$params
         )
         return (estadisticas)
@@ -348,7 +361,7 @@ task.estadisticas <- Task$new(parent.script = script,
 
 # Informar inicio de ejecución 
 script$info(paste0("Calculando estadisticas moviles para un ancho de venta de (", 
-                   paste0(config$params$ancho.ventana, collapse = ", "), ") pentadas"))
+                   paste0(config$params$ancho.ventana.pentadas, collapse = ", "), ") pentadas"))
 # Ejecutar tarea distribuida
 resultados.estadisticas <- task.estadisticas$run(number.of.processes = config$max.procesos,
                                                  input.values = ubicaciones_a_procesar, 

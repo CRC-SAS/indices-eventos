@@ -21,7 +21,7 @@ normalize_dirnames <- function(dirnames) {
   if (!is.atomic(dirnames))
     for (nm in names(dirnames)) 
       dirnames[[nm]] <- normalize_dirnames(dirnames[[nm]])
-    return (dirnames)
+  return (dirnames)
 }
 
 # a) YAML de configuracion de la identificación de eventos
@@ -54,6 +54,15 @@ if (! file.exists(archivo.params)) {
   config$params <- yaml::yaml.load_file(archivo.params)
 }
 
+replace_run_identifier <- function(filenames, identifier) {
+  if (is.atomic(filenames)) 
+    filenames <- base::sub('<\\*idc>', identifier, filenames)
+  if (!is.atomic(filenames))
+    for (nm in names(filenames)) 
+      filenames[[nm]] <- replace_run_identifier(filenames[[nm]], identifier)
+  return (filenames)
+}
+
 # c) YAML de configuración del intercambio de archivos del proceso de generación de índices
 if (length(args) > 1) {
   archivo.nombres <- args[3]
@@ -66,6 +75,7 @@ if (! file.exists(archivo.nombres)) {
 } else {
   cat(paste0("Leyendo archivo de configuración ", archivo.nombres, "...\n"))
   config$files <- yaml::yaml.load_file(archivo.nombres)
+  config$files <- replace_run_identifier(config$files, config$files$identificador_corrida)
 }
 
 rm(archivo.config, archivo.params, archivo.nombres, args); gc()

@@ -16,6 +16,15 @@ rm(pack, list.of.packages); gc()
 # --- PASO 2. Leer archivo de configuracion ----
 # -----------------------------------------------------------------------------#
 
+normalize_dirnames <- function(dirnames) {
+  if (is.atomic(dirnames)) 
+    dirnames <- base::sub('/$', '', dirnames)
+  if (!is.atomic(dirnames))
+    for (nm in names(dirnames)) 
+      dirnames[[nm]] <- normalize_dirnames(dirnames[[nm]])
+  return (dirnames)
+}
+
 # a) YAML de configuracion del generador de config para los índices de sequía
 args <- base::commandArgs(trailingOnly = TRUE)
 if (length(args) > 0) {
@@ -29,8 +38,7 @@ if (! file.exists(archivo.config)) {
 } else {
   cat(paste0("Leyendo archivo de configuración ", archivo.config, "...\n"))
   config <- yaml::yaml.load_file(archivo.config)
-  for (nm in names(config$dir)) # Normalize dir paths
-    config$dir[nm] <- base::sub('/$', '', config$dir[[nm]])
+  config$dir <- normalize_dirnames(config$dir)
 }
 
 # b) YAML de parametros de la generación de configuraciones
@@ -47,6 +55,15 @@ if (! file.exists(archivo.params)) {
   config$params <- yaml::yaml.load_file(archivo.params)
 }
 
+replace_run_identifier <- function(filenames, identifier) {
+  if (is.atomic(filenames)) 
+    filenames <- base::sub('<\\*idc>', identifier, filenames)
+  if (!is.atomic(filenames))
+    for (nm in names(filenames)) 
+      filenames[[nm]] <- replace_run_identifier(filenames[[nm]], identifier)
+  return (filenames)
+}
+
 # c) YAML de configuración del intercambio de archivos del proceso de generación de índices
 if (length(args) > 1) {
   archivo.nombres <- args[3]
@@ -59,6 +76,7 @@ if (! file.exists(archivo.nombres)) {
 } else {
   cat(paste0("Leyendo archivo de configuración ", archivo.nombres, "...\n"))
   config$files <- yaml::yaml.load_file(archivo.nombres)
+  config$files <- replace_run_identifier(config$files, config$files$identificador_corrida)
 }
 
 rm(archivo.config, archivo.nombres, args, nm); gc()

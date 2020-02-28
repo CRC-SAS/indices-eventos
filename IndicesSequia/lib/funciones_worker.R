@@ -126,6 +126,12 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
       # Obtener configuracion de calculo
       configuracion.indice <- configuraciones.indices[row_index, ]
       
+      # Informar estado de la ejecución
+      script$info(glue::glue("Procesando estadisticas para la ubicación: ",
+                             "{ubicacion %>% dplyr::pull(!!id_column)}, config: {configuracion.indice$id} (",
+                             "(indice = {configuracion.indice$indice}, escala = {configuracion.indice$escala}, ",
+                             "distribucion = {configuracion.indice$distribucion})"))
+      
       # Obtener estadisticas para esa escala de tiempo
       estadisticas.variables <- estadisticas.variables.completas %>%
         dplyr::filter(ancho_ventana_pentadas == configuracion.indice$escala * 6)
@@ -215,8 +221,10 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
     }
   )
   
+  
   # Leer todos los archivos con resultados de tests, crear un único tibble
   # con todos los datos en esos archivos y guardarlos en solo dos archivos
+  script$info("Leyendo y borrando los archivos temporales con los resultados de los tests")
   indice_resultados_tests <- purrr::map_dfr(
     .x = seq(from = 1, to = nrow(configuraciones.indices)),
     .f = function(row_index) {
@@ -236,10 +244,12 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
         })
       return(resultados_tests_conf)
     })
+  script$info(glue::glue("Generando archivo con los resultados de los tests: {config$files$indices_sequia$result_tst}"))
   feather::write_feather(indice_resultados_tests, glue::glue("{config$dir$data}/{config$files$indices_sequia$result_tst}"))
   
   # Leer todos los archivos con parametros de indices, crear un único tibble
   # con todos los datos en esos archivos y guardarlos en un solo archivo
+  script$info("Leyendo y borrando los archivos temporales con los parámetros de índices")
   indice_parametros <- purrr::map_dfr(
     .x = seq(from = 1, to = nrow(configuraciones.indices)),
     .f = function(row_index) {
@@ -261,6 +271,7 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
         })
       return(parametros_conf)
     })
+  script$info(glue::glue("Generando archivo con los parámetros de los índices: {config$files$indices_sequia$parametros}"))
   feather::write_feather(indice_parametros, glue::glue("{config$dir$data}/{config$files$indices_sequia$parametros}"))
   
   return (resultado)

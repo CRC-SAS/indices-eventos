@@ -116,12 +116,14 @@ script$start()
 
 
 # e) Buscar los resultados del cálculo de índices de sequía
-script$info("Buscando resultados del cálculo de índices de sequía")
+script$info(glue::glue("Buscando resultados del cálculo de índices de sequía, ",
+                       "archivo: {config$files$indices_sequia$resultados}"))
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$resultados}")
 resultados.indices.sequia <- feather::read_feather(archivo); rm(archivo)
 
 # f) Obtener configuraciones para el cálculo de los indices de sequía
-script$info("Buscando configuraciones para los índices a ser calculados")
+script$info(glue::glue("Buscando configuraciones para los índices a ser calculados, ",
+                       "archivo: {config$files$indices_sequia$configuraciones}"))
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
 configuraciones.indices <- feather::read_feather(archivo); rm(archivo)
 script$info("Seleccionando configuraciones contempladas al calcular los índices de sequía")
@@ -145,14 +147,19 @@ configuraciones.indices <- configuraciones.indices %>%
 script$info("Leyendo netcdf con datos de entrada")
 netcdf_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
 points_filename <- glue::glue("{config$dir$data}/{config$files$puntos_a_extraer}")
-if (is.null(config$files$puntos_a_extraer))
+if (is.null(config$files$puntos_a_extraer)) {
+  script$info("No se especificaron ubicaciones a extraer del netcdf")
+  script$info(glue::glue("Inicia la lectura del netcdf: {config$files$clima_generado}"))
   datos_climaticos_generados <- gamwgen::netcdf.as.sf(netcdf_filename, add.id = T)
-if (!is.null(config$files$puntos_a_extraer))
+} else {
+  script$info(glue::glue("Las ubicaciones a extraer del netcdf se detallan en: {config$files$puntos_a_extraer}"))
+  script$info(glue::glue("Inicia la lectura del netcdf: {config$files$clima_generado}"))
   datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
+}
 script$info("Lectura del netcdf finalizada")
 # h.x) Reducción de trabajo (solo para pruebas)
-datos_climaticos_generados <- datos_climaticos_generados %>%
-  dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
+# datos_climaticos_generados <- datos_climaticos_generados %>%
+#   dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
 # h.2) Generar tibble con ubicaciones sobre las cuales iterar
 script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
@@ -161,7 +168,7 @@ ubicaciones_a_procesar <- datos_climaticos_generados %>%
   dplyr::mutate(lon_dec = sf::st_coordinates(geometry)[,'X'],
                 lat_dec = sf::st_coordinates(geometry)[,'Y']) %>%
   sf::st_drop_geometry() %>% tibble::as_tibble() %>% dplyr::distinct()
-script$info("Obtención finalizada")
+script$info("Obtención de ubicaciones a iterar finalizada")
 
 # ------------------------------------------------------------------------------
 
@@ -200,8 +207,9 @@ file.append(script_logfile, task_logfile)
 resultados.identificar.eventos.tibble <- resultados.identificar.eventos %>% purrr::map_dfr(~.x)
 
 # Guardar resultados en un archivo fácil de compartir
-feather::write_feather(resultados.identificar.eventos.tibble, 
-                       glue::glue("{config$dir$data}/{config$files$identificar_eventos$resultados}"))
+results_filename <- glue::glue("{config$dir$data}/{config$files$identificar_eventos$resultados}")
+script$info(glue::glue("Guardando resultados en el archivo {results_filename}"))
+feather::write_feather(resultados.estadisticas.tibble, results_filename)
 
 # Si hay errores, terminar ejecucion
 task.identificar.eventos.errors <- task.identificar.eventos$getErrors()

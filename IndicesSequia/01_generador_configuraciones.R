@@ -79,7 +79,7 @@ if (! file.exists(archivo.nombres)) {
   config$files <- replace_run_identifier(config$files, config$files$identificador_corrida)
 }
 
-rm(archivo.config, archivo.nombres, args, nm); gc()
+rm(archivo.config, archivo.nombres, args); gc()
 # ------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------#

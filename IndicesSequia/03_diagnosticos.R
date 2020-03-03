@@ -104,7 +104,7 @@ if (!is.null(config$files$puntos_a_extraer))
 futile.logger::flog.info("Lectura del netcdf finalizada")
 # B.x) Reducción de trabajo (solo para pruebas)
 # datos_climaticos_generados <- datos_climaticos_generados %>%
-#   dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
+#   dplyr::filter( realization %in% c(1, 2, 3), dplyr::between(date, as.Date('1991-01-01'), as.Date('2000-12-31')) )
 # b.2) Generar tibble con ubicaciones sobre las cuales iterar
 futile.logger::flog.info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%

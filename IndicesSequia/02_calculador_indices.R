@@ -129,10 +129,10 @@ archivo <- glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$resu
 estadisticas.moviles <- feather::read_feather(archivo); rm(archivo)
 script$info("Seleccionando estadísticas móviles asociadas a las escalas especifícadas")
 estadisticas.moviles <- estadisticas.moviles %>%
-  dplyr::filter(ancho_ventana_pentadas %in% (config$params$escalas*6))
+  dplyr::filter(ancho_ventana_pentadas %in% (config$params$escalas * 6))
 
 # f) Verificar que hayan estadísticas para todas las escalas especificadas en el yaml
-if (!all(config$params$escalas %in% estadisticas.moviles$ancho_ventana_pentadas))
+if (!all((config$params$escalas * 6) %in% estadisticas.moviles$ancho_ventana_pentadas))
   stop("En parametros_calcular_indices.yml se han especificado escalas para las ",
        "cuales no han sido calculadas estadísticas móviles!!")
 
@@ -175,7 +175,7 @@ if (is.null(config$files$puntos_a_extraer)) {
 script$info("Lectura del netcdf finalizada")
 # i.x) Reducción de trabajo (solo para pruebas)
 # datos_climaticos_generados <- datos_climaticos_generados %>%
-#   dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
+#   dplyr::filter( realization %in% c(1, 2, 3), dplyr::between(date, as.Date('1991-01-01'), as.Date('2000-12-31')) )
 # i.2) Generar tibble con ubicaciones sobre las cuales iterar
 script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
@@ -223,7 +223,7 @@ resultados.indices.sequia.tibble <- resultados.indices.sequia %>% purrr::map_dfr
 # Guardar resultados en un archivo fácil de compartir
 results_filename <- glue::glue("{config$dir$data}/{config$files$indices_sequia$resultados}")
 script$info(glue::glue("Guardando resultados en el archivo {results_filename}"))
-feather::write_feather(resultados.estadisticas.tibble, results_filename)
+feather::write_feather(resultados.indices.sequia.tibble, results_filename)
 
 # Si hay errores, terminar ejecucion
 task.indices.sequia.errors <- task.indices.sequia$getErrors()

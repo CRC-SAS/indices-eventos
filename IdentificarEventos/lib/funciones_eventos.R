@@ -135,8 +135,7 @@ identificarEventosConfigUbicacion = function(indice_configuracion_id, ubicacion,
 
 
 # --- Función responsable de iniciar la identificación de eventos
-IdentificarEventos <- function(input.value, script, config, configuraciones.indices, 
-                               resultados.indices.sequia, numero.realizaciones) {
+IdentificarEventos <- function(input.value, script, config, configuraciones.indices, resultados.indices.sequia) {
   # Obtener la ubicación para la cual se calcularán los índices
   ubicacion <- input.value
   

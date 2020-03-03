@@ -159,7 +159,7 @@ if (is.null(config$files$puntos_a_extraer)) {
 script$info("Lectura del netcdf finalizada")
 # h.x) Reducción de trabajo (solo para pruebas)
 # datos_climaticos_generados <- datos_climaticos_generados %>%
-#   dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1981-01-01'), as.Date('2010-12-31')) )
+#   dplyr::filter( realization %in% c(1, 2, 3), dplyr::between(date, as.Date('1991-01-01'), as.Date('2000-12-31')) )
 # h.2) Generar tibble con ubicaciones sobre las cuales iterar
 script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
@@ -194,11 +194,9 @@ task.identificar.eventos <- Task$new(parent.script = script,
 
 # Ejecutar tarea distribuida
 script$info("Identificando Eventos")
-cantidad.de.realizaciones <- datos_climaticos_generados %>% dplyr::pull(realization) %>% base::unique()
 resultados.identificar.eventos <- task.identificar.eventos$run(number.of.processes = config$max.procesos, 
                                                                config = config, input.values = ubicaciones_a_procesar,
-                                                               configuraciones.indices, resultados.indices.sequia,
-                                                               numero.realizaciones = cantidad.de.realizaciones)
+                                                               configuraciones.indices, resultados.indices.sequia)
 
 # Agregar log de la tarea al log del script
 file.append(script_logfile, task_logfile)
@@ -207,9 +205,9 @@ file.append(script_logfile, task_logfile)
 resultados.identificar.eventos.tibble <- resultados.identificar.eventos %>% purrr::map_dfr(~.x)
 
 # Guardar resultados en un archivo fácil de compartir
-results_filename <- glue::glue("{config$dir$data}/{config$files$identificar_eventos$resultados}")
+results_filename <- glue::glue("{config$dir$data}/{config$files$eventos$resultados}")
 script$info(glue::glue("Guardando resultados en el archivo {results_filename}"))
-feather::write_feather(resultados.estadisticas.tibble, results_filename)
+feather::write_feather(resultados.identificar.eventos.tibble, results_filename)
 
 # Si hay errores, terminar ejecucion
 task.identificar.eventos.errors <- task.identificar.eventos$getErrors()
@@ -230,7 +228,7 @@ if (length(task.identificar.eventos.errors) > 0) {
 script$stop()
 
 # b) Crear archivo .info
-info_filename <- glue::glue("{config$dir$data}/{config$files$identificar_eventos$info_corrida}")
+info_filename <- glue::glue("{config$dir$data}/{config$files$eventos$info_corrida}")
 if (file.exists(info_filename))
   file.remove(info_filename)
 file.copy(from = script_logfile, to = info_filename)

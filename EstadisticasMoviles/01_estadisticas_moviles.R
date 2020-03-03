@@ -125,16 +125,24 @@ script$info("Lectura del netcdf finalizada")
 
 # x) Reducción de trabajo (solo para pruebas)
 # datos_climaticos_generados <- datos_climaticos_generados %>%
-#   dplyr::filter( realization %in% c(1, 2), dplyr::between(date, as.Date('1991-01-01'), as.Date('2000-12-31')) )
+#   dplyr::filter( realization %in% c(1, 2, 3), dplyr::between(date, as.Date('1991-01-01'), as.Date('2000-12-31')) )
 
-# f) Fechas mínima y máxima
+# f) Control de cantidad de observaciones (combinación de años y realizaciones, por ubicación)
+realizaciones <- unique(datos_climaticos_generados$realization)
+anos_existnts <- unique(lubridate::year(datos_climaticos_generados$date))
+if (nrow(tidyr::crossing(realizaciones, anos_existnts)) < 30)
+  script$warn(paste("La cantidad de observaciones derivada de la combinación de anhos y realizaciones",
+                    "es menor a 30. Lo que podría no ser suficiente para algunas de las estadísticas",
+                    "a ser calculadas a partir de las estadísticas móviles a ser calculadas!!"))
+
+# g) Fechas mínima y máxima
 fecha.minima <- min(datos_climaticos_generados$date)
 fecha.maxima <- max(datos_climaticos_generados$date)
 
-# g) Calcular fecha minima de inicio de pentada
+# h) Calcular fecha minima de inicio de pentada
 fecha.minima.inicio.pentada <- fecha.inicio.pentada(fecha.minima)
 
-# h) Calcular fecha maxima de inicio y fin de pentada
+# i) Calcular fecha maxima de inicio y fin de pentada
 fecha.maxima.inicio.pentada <- fecha.inicio.pentada(fecha.maxima)
 fecha.maxima.fin.pentada    <- fecha.fin.pentada(fecha.maxima)
 if (fecha.maxima.fin.pentada > fecha.maxima) {
@@ -145,7 +153,7 @@ if (fecha.maxima.fin.pentada > fecha.maxima) {
 
 rm(fecha.maxima.fin.pentada)
 
-# i) Generar tibble con ubicaciones sobre las cuales iterar
+# j) Generar tibble con ubicaciones sobre las cuales iterar
 script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
   dplyr::select(dplyr::ends_with("_id"), longitude, latitude) %>%
@@ -177,14 +185,11 @@ CalcularEstadisticasUbicacionVariable  <- function(variable, script, fechas.proc
                          "{ubicacion %>% dplyr::pull(!!id_column)}, pentada: ",
                          "{ancho.ventana.pentadas}, variable: {variable}"))
   
-  # Se pasa el ancho de ventana en péntada a un ancho de ventana en días
-  ancho.ventana.dias <- ancho.ventana.pentadas*6
-  
   # Definir parametros para variables
   politicas.ventana        <- purrr::keep(
     .x = parametros$faltantes, 
     .p = function(politica) { 
-      return (politica$ancho.ventana.dias == ancho.ventana.dias) }
+      return (politica$ancho.ventana.pentadas == ancho.ventana.pentadas) }
   )[[1]]$politica
   parametros.faltantes     <- politicas.ventana[[variable]]
   estadisticos.calculables <- parametros$estadisticos[[variable]]
@@ -269,8 +274,7 @@ CalcularEstadisticasUbicacionVariable  <- function(variable, script, fechas.proc
   )
   
   return (ubicacion %>% dplyr::select(dplyr::ends_with("_id")) %>%
-            dplyr::mutate(variable_id = variable, ancho_ventana_dias = ancho.ventana.dias, 
-                          ancho_ventana_pentadas = ancho.ventana.pentadas) %>%
+            dplyr::mutate(variable_id = variable, ancho_ventana_pentadas = ancho.ventana.pentadas) %>%
             tidyr::crossing(estadisticos_x_fechas_procesables))
 }
 CalcularEstadisticasUbicacion <- function(input.value, script, config, variables,

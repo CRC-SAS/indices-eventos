@@ -2,10 +2,12 @@
 # Definicion de ventana de calculo
 # ------------------------------------------------------------------------------
 # Este parametro define los ancho de la ventana de tiempo (en pentadas) para 
-# realizar la agregacion. Se utilizan anchos de ventana en relacion a los indices
-# de sequia a calcular: 1, 2, 3, 6, 9, 12, 18, 24, 36 y 48 meses. Pasado a días, 
-# los valores correspondientes son: 6, 12, 18, 36, 54, 72, 108, 144, 216 y 288.
-ancho.ventana.pentadas: [ 1, 2, 3, 6, 9, 12, 18, 24, 36, 48 ]
+# realizar la agregacion. Se utilizan anchos de ventana en relacion a las escalas
+# a ser utilizadas para el  calculo de índices de sequía, estas escalas son las 
+# siguientesL 1, 2, 3, 6, 9, 12, 18, 24, 36 y 48 MESES. 1 mes = 6 pentadas, por lo
+# tanto, al pasar los meses (de las escalas), a pentadas, se obtienen los sigueintes 
+# valores: 6, 12, 18, 36, 54, 72, 108, 144, 216 y 288.
+ancho.ventana.pentadas: [ 6, 12, 18, 36, 54, 72, 108, 144, 216, 288 ]
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
@@ -19,16 +21,16 @@ ancho.ventana.pentadas: [ 1, 2, 3, 6, 9, 12, 18, 24, 36, 48 ]
 # criterio. Para los distintos anchos de ventana la politica de faltantes varia
 # ya que la cantidad de datos disponibles es diferente.
 faltantes:
-  - { ancho.ventana.dias: 6, politica: { tmax: { maximo: 5, consecutivos: 3 }, tmin: { maximo: 5, consecutivos: 3 }, prcp: { maximo: 3 } } }
-  - { ancho.ventana.dias: 12, politica: { tmax: { maximo: 10, consecutivos: 3 }, tmin: { maximo: 10, consecutivos: 3 }, prcp: { maximo: 6 } } }
-  - { ancho.ventana.dias: 18, politica: { tmax: { maximo: 15, consecutivos: 3 }, tmin: { maximo: 15, consecutivos: 3 }, prcp: { maximo: 9 } } }
-  - { ancho.ventana.dias: 36, politica: { tmax: { maximo: 30, consecutivos: 3 }, tmin: { maximo: 30, consecutivos: 3 }, prcp: { maximo: 18 } } }
-  - { ancho.ventana.dias: 54, politica: { tmax: { maximo: 45, consecutivos: 3 }, tmin: { maximo: 45, consecutivos: 3 }, prcp: { maximo: 27 } } }
-  - { ancho.ventana.dias: 72, politica: { tmax: { maximo: 60, consecutivos: 3 }, tmin: { maximo: 60, consecutivos: 3 }, prcp: { maximo: 36 } } }
-  - { ancho.ventana.dias: 108, politica: { tmax: { maximo: 90, consecutivos: 3 }, tmin: { maximo: 90, consecutivos: 3 }, prcp: { maximo: 54 } } }
-  - { ancho.ventana.dias: 144, politica: { tmax: { maximo: 120, consecutivos: 3 }, tmin: { maximo: 120, consecutivos: 3 }, prcp: { maximo: 72 } } }
-  - { ancho.ventana.dias: 216, politica: { tmax: { maximo: 180, consecutivos: 3 }, tmin: { maximo: 180, consecutivos: 3 }, prcp: { maximo: 108 } } }
-  - { ancho.ventana.dias: 288, politica: { tmax: { maximo: 240, consecutivos: 3 }, tmin: { maximo: 240, consecutivos: 3 }, prcp: { maximo: 144 } } }
+  - { ancho.ventana.pentadas: 6, politica: { tmax: { maximo: 5, consecutivos: 3 }, tmin: { maximo: 5, consecutivos: 3 }, prcp: { maximo: 3 } } }
+  - { ancho.ventana.pentadas: 12, politica: { tmax: { maximo: 10, consecutivos: 3 }, tmin: { maximo: 10, consecutivos: 3 }, prcp: { maximo: 6 } } }
+  - { ancho.ventana.pentadas: 18, politica: { tmax: { maximo: 15, consecutivos: 3 }, tmin: { maximo: 15, consecutivos: 3 }, prcp: { maximo: 9 } } }
+  - { ancho.ventana.pentadas: 36, politica: { tmax: { maximo: 30, consecutivos: 3 }, tmin: { maximo: 30, consecutivos: 3 }, prcp: { maximo: 18 } } }
+  - { ancho.ventana.pentadas: 54, politica: { tmax: { maximo: 45, consecutivos: 3 }, tmin: { maximo: 45, consecutivos: 3 }, prcp: { maximo: 27 } } }
+  - { ancho.ventana.pentadas: 72, politica: { tmax: { maximo: 60, consecutivos: 3 }, tmin: { maximo: 60, consecutivos: 3 }, prcp: { maximo: 36 } } }
+  - { ancho.ventana.pentadas: 108, politica: { tmax: { maximo: 90, consecutivos: 3 }, tmin: { maximo: 90, consecutivos: 3 }, prcp: { maximo: 54 } } }
+  - { ancho.ventana.pentadas: 144, politica: { tmax: { maximo: 120, consecutivos: 3 }, tmin: { maximo: 120, consecutivos: 3 }, prcp: { maximo: 72 } } }
+  - { ancho.ventana.pentadas: 216, politica: { tmax: { maximo: 180, consecutivos: 3 }, tmin: { maximo: 180, consecutivos: 3 }, prcp: { maximo: 108 } } }
+  - { ancho.ventana.pentadas: 288, politica: { tmax: { maximo: 240, consecutivos: 3 }, tmin: { maximo: 240, consecutivos: 3 }, prcp: { maximo: 144 } } }
 #-------------------------------------------------------------------------------
 
 

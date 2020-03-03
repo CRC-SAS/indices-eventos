@@ -128,13 +128,13 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
       
       # Informar estado de la ejecución
       script$info(glue::glue("Procesando estadisticas para la ubicación: ",
-                             "{ubicacion %>% dplyr::pull(!!id_column)}, config: {configuracion.indice$id} (",
+                             "{ubicacion %>% dplyr::pull(!!id_column)}, config: {configuracion.indice$id} ",
                              "(indice = {configuracion.indice$indice}, escala = {configuracion.indice$escala}, ",
                              "distribucion = {configuracion.indice$distribucion})"))
       
       # Obtener estadisticas para esa escala de tiempo
       estadisticas.variables <- estadisticas.variables.completas %>%
-        dplyr::filter(ancho_ventana_pentadas == configuracion.indice$escala * 6)
+        dplyr::filter(ancho_ventana_pentadas == (configuracion.indice$escala * 6))
       
       #### ----------------------------------------------------------------------#
       #### Para cada fecha procesable:
@@ -325,6 +325,10 @@ AjustarParametrosUbicacionFecha <- function(ubicacion, fecha.procesable, configu
   }
   if (length(variable.acumulada) >= min.valores.necesarios) {
     argumentos.ajuste$x  <- variable.acumulada
+  } else {
+    script$warn(paste("Verificar los resultados, los parámetros parecen no haberse generado correctamente!!",
+                      "No se pudo completar 30 observaciones, probablemente la combinación de años y",
+                      "realizaciones no llega a 30 observaciones!!"))
   }
   parametros.ajuste      <- do.call(what = funcion.ajuste, args = argumentos.ajuste)
   

@@ -35,26 +35,26 @@ indices_sequia:
 
   # PASO 2 -- proyecto: IndicesSequia, script: 01_generador_configuraciones.R
   # Archivo con las configuraciones generadas para el cálculo de índices de sequia
-  configuraciones: "partial/configuraciones_indice_sequia_<*idc>.feather"
+  configuraciones: "partial/configuraciones_indices_sequia_<*idc>.feather"
 
   # PASO 3 -- proyecto: IndicesSequia, script: 02_calcular_indices.R
   # Archivo con los resultados, parametros y tests del cálculo de índices
-  resultados: "output/resultados_indice_sequia_<*idc>.feather"
-  parametros: "partial/parametros_indice_sequia_<*idc>.feather"
-  result_tst: "partial/resultados_tests_indice_sequia_<*idc>.feather"
+  resultados: "output/indices_sequia_<*idc>.feather"
+  parametros: "partial/parametros_indices_sequia_<*idc>.feather"
+  result_tst: "partial/resultados_tests_indices_sequia_<*idc>.feather"
   
   # Archivo con información sobre la corrida
-  info_corrida: "partial/estadisticas_moviles_<*idc>.info"
+  info_corrida: "partial/indices_sequia_<*idc>.info"
 
 # PASO 4 -- proyecto: IdentificarEventos
-identificar_eventos:
+eventos:
 
   # PASO 4 -- proyecto: IdentificarEventos, script: 01_identificar_eventos.R
   # Archivo con los resultados de la identificación de eventos
-  resultados: "output/resultados_identificar_eventos_<*idc>.feather"
+  resultados: "output/eventos_identificados_<*idc>.feather"
   
   # Archivo con información sobre la corrida
-  info_corrida: "partial/estadisticas_moviles_<*idc>.info"
+  info_corrida: "partial/eventos_identificados_<*idc>.info"
 
   
 # ------------------------------------------------------------------------------

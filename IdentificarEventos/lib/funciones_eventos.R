@@ -37,9 +37,12 @@ identificarLongitudesCadenas = function(x) {
 
 
 # Función para la identificación de eventos
-identificarEventosConfigUbicacion = function(indice_configuracion_id, ubicacion, tipo_evento = c("seco", "humedo"), 
-                                             umbral_indice, duracion_minima, valores.indices.completos, 
-                                             interpolar_aislados = TRUE, metodo_imputacion_id = 0) {
+identificarEventosConfigUbicacionR = function(realizacion, conf_indice, ubicacion, 
+                                              tipo_evento = c("seco", "humedo"), 
+                                              umbral_indice, duracion_minima, 
+                                              valores.indices.realizacion, 
+                                              interpolar_aislados = TRUE, 
+                                              metodo_imputacion_id = 0) {
   # 0. Validar tipo de evento
   base::match.arg(tipo_evento)
   
@@ -49,10 +52,10 @@ identificarEventosConfigUbicacion = function(indice_configuracion_id, ubicacion,
   # 1. Buscar valores de indices para la estacion. Si hay valores faltantes (NA) aislados
   #    (un NA con un predecesor y un sucesor no NA), interpolar linealmente para evitar "perder" eventos.
   eventos         <- NULL
-  valores.indices <- valores.indices.completos %>%
+  valores.indices <- valores.indices.realizacion %>%
     dplyr::filter(!!rlang::sym(id_column) == dplyr::pull(ubicacion, !!id_column) & 
                     metodo_imputacion_id == !!metodo_imputacion_id & 
-                    indice_configuracion_id == !!indice_configuracion_id)
+                    conf_id  == conf_indice$id)
   if (nrow(valores.indices) > 0) {
     valores.indices <- valores.indices %>%
       dplyr::arrange(!!rlang::sym(id_column), ano, pentada_fin)
@@ -129,8 +132,32 @@ identificarEventosConfigUbicacion = function(indice_configuracion_id, ubicacion,
                        maximo = max(valor_indice_ajustado))
   }
   
-  return (eventos %>% dplyr::mutate(tipo_evento = !!tipo_evento, 
-                                    indice_configuracion_id = !!indice_configuracion_id))
+  if (! is.null(eventos)) {
+    eventos <- eventos %>% 
+      dplyr::mutate(tipo_evento = !!tipo_evento, 
+                    conf_id = conf_indice$id, indice = conf_indice$indice, escala = conf_indice$escala, 
+                    distribucion = conf_indice$distribucion, metodo_ajuste = conf_indice$metodo_ajuste, 
+                    referencia_comienzo = conf_indice$referencia_comienzo, 
+                    referencia_fin = conf_indice$referencia_fin,
+                    realizacion = !!realizacion) %>%
+      dplyr::select(realizacion, dplyr::everything())
+    return (eventos)
+  } else {
+    type_of_id_col <- typeof(dplyr::pull(ubicacion,!!id_column))
+    return (tibble::tibble(realizacion = double(),
+                           !!id_column := if(type_of_id_col == "integer") integer() else 
+                                          if(type_of_id_col == "numeric") double() else 
+                                          if(type_of_id_col == "logical") logical() else 
+                                          if(type_of_id_col == "character") character() else
+                                          character(),
+                           numero_evento = integer(), 
+                           fecha_inicio = as.Date(character()), fecha_fin = as.Date(character()), 
+                           intensidad = double(), magnitud = double(), duracion = integer(), 
+                           minimo = double(), maximo = double(), tipo_evento = character(),
+                           conf_id = integer(), indice = character(), escala = integer(), 
+                           distribucion = character(), metodo_ajuste = character(), 
+                           referencia_comienzo = character(), referencia_fin = character()))
+  }
 }
 
 
@@ -148,26 +175,23 @@ IdentificarEventos <- function(input.value, script, config, configuraciones.indi
                          "(lon: {ubicacion$longitude}, lat: {ubicacion$latitude})"))
   
   eventos_secos <- purrr::pmap_dfr(
-    .l = configuraciones.indices,
+    .l = configuraciones.indices %>% dplyr::arrange(id),
     .f = function(...) {
       conf_indice <- tibble::tibble(...)
       eventos <- purrr::map_dfr(
         .x = unique(resultados.indices.sequia$realizacion),
         .f = function(r) {
           eventos_x_realizacion <- 
-            identificarEventosConfigUbicacion(indice_configuracion_id = conf_indice$id, 
-                                              ubicacion = ubicacion, tipo_evento = "seco", 
-                                              umbral_indice = config$params$eventos$secos$umbral, 
-                                              duracion_minima = config$params$eventos$secos$duracion_minima, 
-                                              valores.indices.completos = resultados.indices.sequia %>% 
-                                                dplyr::filter(realizacion == r)) %>%
-            dplyr::mutate(realizacion = r)
+            identificarEventosConfigUbicacionR(conf_indice = conf_indice, ubicacion = ubicacion, 
+                                               tipo_evento = "seco", 
+                                               umbral_indice = config$params$eventos$secos$umbral, 
+                                               duracion_minima = config$params$eventos$secos$duracion_minima, 
+                                               valores.indices.realizacion = resultados.indices.sequia %>% 
+                                                 dplyr::filter(realizacion == r),
+                                               realizacion = r)
+          return (eventos_x_realizacion)
         })
-      eventos <- eventos %>%
-        dplyr::mutate(indice = conf_indice$indice, escala = conf_indice$escala, 
-                      distribucion = conf_indice$distribucion, 
-                      metodo_ajuste = conf_indice$metodo_ajuste)
-      return (eventos %>% dplyr::select(realizacion, dplyr::everything()))
+      return (eventos)
     })
   
   # Informar estado de la ejecución
@@ -183,19 +207,16 @@ IdentificarEventos <- function(input.value, script, config, configuraciones.indi
         .x = unique(resultados.indices.sequia$realizacion),
         .f = function(r) {
           eventos_x_realizacion <- 
-            identificarEventosConfigUbicacion(indice_configuracion_id = conf_indice$id, 
-                                              ubicacion = ubicacion, tipo_evento = "humedo", 
-                                              umbral_indice = config$params$eventos$humedos$umbral, 
-                                              duracion_minima = config$params$eventos$humedos$duracion_minima, 
-                                              valores.indices.completos = resultados.indices.sequia %>% 
-                                                dplyr::filter(realizacion == r)) %>%
-            dplyr::mutate(realizacion = r)
+            identificarEventosConfigUbicacionR(conf_indice = conf_indice, ubicacion = ubicacion, 
+                                               tipo_evento = "humedo", 
+                                               umbral_indice = config$params$eventos$humedos$umbral, 
+                                               duracion_minima = config$params$eventos$humedos$duracion_minima, 
+                                               valores.indices.realizacion = resultados.indices.sequia %>% 
+                                                 dplyr::filter(realizacion == r),
+                                               realizacion = r)
+          return (eventos_x_realizacion)
         })
-      eventos <- eventos %>%
-        dplyr::mutate(indice = conf_indice$indice, escala = conf_indice$escala, 
-                      distribucion = conf_indice$distribucion, 
-                      metodo_ajuste = conf_indice$metodo_ajuste)
-      return (eventos %>% dplyr::select(realizacion, dplyr::everything()))
+      return (eventos)
     })
   
   return (dplyr::bind_rows(eventos_secos, eventos_humedos))

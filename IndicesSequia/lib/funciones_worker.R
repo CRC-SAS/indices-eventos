@@ -196,14 +196,17 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
       
       # iii. Guardar valor de indice y percentil asociado en base de datos.
       if (nrow(resultados.indice.configuracion) > 0) {
-        script$info(glue::glue("Almacenando indices de sequia de la ubicación {ubicacion %>% dplyr::pull(!!id_column)} ",
+        script$info(glue::glue("Retornando indices de sequia de la ubicación {ubicacion %>% dplyr::pull(!!id_column)} ",
                                "para la configuración {configuracion.indice$id}"))
         valores.indice <- resultados.indice.configuracion %>%
-          dplyr::mutate(indice = configuracion.indice$indice, escala = configuracion.indice$escala, 
-                        distribucion = configuracion.indice$distribucion, metodo_ajuste = configuracion.indice$metodo_ajuste, 
+          dplyr::mutate(conf_id = configuracion.indice$id, indice = configuracion.indice$indice, 
+                        escala = configuracion.indice$escala, distribucion = configuracion.indice$distribucion, 
+                        metodo_ajuste = configuracion.indice$metodo_ajuste, 
+                        referencia_comienzo = as.Date(configuracion.indice$referencia_comienzo), 
+                        referencia_fin = as.Date(configuracion.indice$referencia_fin),
                         metodo_imputacion_id = 0, !!id_column := dplyr::pull(ubicacion, !!id_column)) %>%
-          dplyr::select(!!id_column, realizacion, pentada_fin, ano, metodo_imputacion_id, indice, escala, 
-                        distribucion, metodo_ajuste, valor_dato, valor_indice, percentil_dato)
+          dplyr::select(!!id_column, realizacion, pentada_fin, ano, metodo_imputacion_id, conf_id, indice, escala, distribucion,
+                        metodo_ajuste, referencia_comienzo, referencia_fin, valor_dato, valor_indice, percentil_dato)
         return(valores.indice)
       } else {
         type_of_id_col <- typeof(dplyr::pull(ubicacion,!!id_column))
@@ -212,10 +215,12 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
                                                         if(type_of_id_col == "logical") logical() else 
                                                         if(type_of_id_col == "character") character() else
                                                           character(), 
-                                         realizacion = integer(), pentada_fin = double(), ano = double(), 
-                                         metodo_imputacion_id = double(), indice = character(), escala = integer(), 
-                                         distribucion = character(), metodo_ajuste = character(), valor_dato = double(), 
-                                         valor_indice = double(), percentil_dato = double())
+                                         realizacion = integer(), pentada_fin = double(), ano = double(), metodo_imputacion_id = double(), 
+                                         conf_id = integer(), 
+                                         indice = character(), escala = integer(), distribucion = character(), 
+                                         metodo_ajuste = character(), referencia_comienzo = as.Date(character()), 
+                                         referencia_fin = as.Date(character()),
+                                         valor_dato = double(), valor_indice = double(), percentil_dato = double())
         return(valores.indice)
       }
     }

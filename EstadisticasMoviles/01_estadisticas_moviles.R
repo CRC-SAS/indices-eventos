@@ -182,8 +182,8 @@ CalcularEstadisticasUbicacionVariable  <- function(variable, script, fechas.proc
   
   # Informar estado de la ejecución
   script$info(glue::glue("Procesando estadisticas para la ubicación: ",
-                         "{ubicacion %>% dplyr::pull(!!id_column)}, pentada: ",
-                         "{ancho.ventana.pentadas}, variable: {variable}"))
+                         "{ubicacion %>% dplyr::pull(!!id_column)}, escala: ",
+                         "{ancho.ventana.pentadas/6}, variable: {variable}"))
   
   # Definir parametros para variables
   politicas.ventana        <- purrr::keep(

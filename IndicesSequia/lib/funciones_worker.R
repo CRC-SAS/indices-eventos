@@ -250,7 +250,9 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
       return(resultados_tests_conf)
     })
   script$info(glue::glue("Generando archivo con los resultados de los tests: {config$files$indices_sequia$result_tst}"))
-  feather::write_feather(indice_resultados_tests, glue::glue("{config$dir$data}/{config$files$indices_sequia$result_tst}"))
+  filename = glue::glue("{config$dir$data}/{config$files$indices_sequia$result_tst}")
+  data.table::fwrite(indice_resultados_tests, file = filename, nThread = config$files$avbl_cores)
+  base::remove(filename); base::invisible(base::gc())
   
   # Leer todos los archivos con parametros de indices, crear un único tibble
   # con todos los datos en esos archivos y guardarlos en un solo archivo
@@ -277,7 +279,9 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
       return(parametros_conf)
     })
   script$info(glue::glue("Generando archivo con los parámetros de los índices: {config$files$indices_sequia$parametros}"))
-  feather::write_feather(indice_parametros, glue::glue("{config$dir$data}/{config$files$indices_sequia$parametros}"))
+  filename = glue::glue("{config$dir$data}/{config$files$indices_sequia$parametros}")
+  data.table::fwrite(indice_parametros, file = filename, nThread = config$files$avbl_cores)
+  base::remove(filename); base::invisible(base::gc())
   
   return (resultado)
 }

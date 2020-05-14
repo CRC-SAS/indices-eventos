@@ -5,15 +5,20 @@
 # ------------------------------------------------------------------------------
 # Archivos con datos de entrada 
 # ------------------------------------------------------------------------------
-# NetCDF generado por el paquete gamwgen, con los datos climaticos generados.
-clima_generado: "input/gen_climate_junin.nc"
-puntos_a_extraer: "input/points_to_extract_junin.rds" # debe ser un objeto sf (puede ser NULL)
+# CSV generado por el paquete gamwgen, con los datos climaticos generados.
+clima_generado: "input/sim_results_spatial.csv"
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
 # Se define in identificador global para la corrida
 # ------------------------------------------------------------------------------
 identificador_corrida: &idc "id1"
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Procesadores disponibles para la lectura y escritura de los csv
+# ------------------------------------------------------------------------------
+avbl_cores: 2
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
@@ -25,7 +30,7 @@ estadisticas_moviles:
 
   # PAS0 1 -- proyecto: EstadisticasMoviles, script: 01_estadisticas_moviles.R
   # Archivo con los resultados las estadícticas moviles
-  resultados: "partial/estadisticas_moviles_<*idc>.feather"
+  resultados: "partial/estadisticas_moviles_<*idc>.csv"
   
   # Archivo con información sobre la corrida
   info_corrida: "partial/estadisticas_moviles_<*idc>.info"
@@ -35,13 +40,13 @@ indices_sequia:
 
   # PASO 2 -- proyecto: IndicesSequia, script: 01_generador_configuraciones.R
   # Archivo con las configuraciones generadas para el cálculo de índices de sequia
-  configuraciones: "partial/configuraciones_indices_sequia_<*idc>.feather"
+  configuraciones: "partial/configuraciones_indices_sequia_<*idc>.csv"
 
   # PASO 3 -- proyecto: IndicesSequia, script: 02_calcular_indices.R
   # Archivo con los resultados, parametros y tests del cálculo de índices
-  resultados: "output/indices_sequia_<*idc>.feather"
-  parametros: "partial/parametros_indices_sequia_<*idc>.feather"
-  result_tst: "partial/resultados_tests_indices_sequia_<*idc>.feather"
+  resultados: "output/indices_sequia_<*idc>.csv"
+  parametros: "partial/parametros_indices_sequia_<*idc>.csv"
+  result_tst: "partial/resultados_tests_indices_sequia_<*idc>.csv"
   
   # Archivo con información sobre la corrida
   info_corrida: "partial/indices_sequia_<*idc>.info"
@@ -51,7 +56,7 @@ eventos:
 
   # PASO 4 -- proyecto: IdentificarEventos, script: 01_identificar_eventos.R
   # Archivo con los resultados de la identificación de eventos
-  resultados: "output/eventos_identificados_<*idc>.feather"
+  resultados: "output/eventos_identificados_<*idc>.csv"
   
   # Archivo con información sobre la corrida
   info_corrida: "partial/eventos_identificados_<*idc>.info"

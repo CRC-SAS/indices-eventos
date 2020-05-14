@@ -162,7 +162,8 @@ identificarEventosConfigUbicacionR = function(realizacion, conf_indice, ubicacio
 
 
 # --- Función responsable de iniciar la identificación de eventos
-IdentificarEventos <- function(input.value, script, config, configuraciones.indices, resultados.indices.sequia) {
+IdentificarEventos <- function(input.value, script, config, configuraciones.indices, 
+                               resultados.indices.sequia, interpolar_aislados) {
   # Obtener la ubicación para la cual se calcularán los índices
   ubicacion <- input.value
   
@@ -188,6 +189,7 @@ IdentificarEventos <- function(input.value, script, config, configuraciones.indi
                                                duracion_minima = config$params$eventos$secos$duracion_minima, 
                                                valores.indices.realizacion = resultados.indices.sequia %>% 
                                                  dplyr::filter(realizacion == r),
+                                               interpolar_aislados = interpolar_aislados,
                                                realizacion = r)
           return (eventos_x_realizacion)
         })
@@ -213,6 +215,7 @@ IdentificarEventos <- function(input.value, script, config, configuraciones.indi
                                                duracion_minima = config$params$eventos$humedos$duracion_minima, 
                                                valores.indices.realizacion = resultados.indices.sequia %>% 
                                                  dplyr::filter(realizacion == r),
+                                               interpolar_aislados = interpolar_aislados,
                                                realizacion = r)
           return (eventos_x_realizacion)
         })

@@ -2,8 +2,8 @@
 # --- PASO 1. Cargar paquetes necesarios ----
 rm(list = ls()); gc()
 Sys.setenv(TZ = "UTC")
-list.of.packages <- c("dplyr", "magrittr", "glue", "purrr",
-                      "stringr", "yaml", "feather")
+list.of.packages <- c("dplyr", "magrittr", "glue", "purrr", "stringr", 
+                      "yaml", "data.table")
 for (pack in list.of.packages) {
   if (!require(pack, character.only = TRUE)) {
     stop(paste0("Paquete no encontrado: ", pack))
@@ -56,7 +56,7 @@ if (! file.exists(archivo.params)) {
 }
 
 replace_run_identifier <- function(filenames, identifier) {
-  if (is.atomic(filenames)) 
+  if (is.atomic(filenames) && grepl("<\\*idc>", filenames)) 
     filenames <- base::sub('<\\*idc>', identifier, filenames)
   if (!is.atomic(filenames))
     for (nm in names(filenames)) 
@@ -119,5 +119,5 @@ configuraciones <- purrr::map_dfr(
 # -----------------------------------------------------------------------------#
 # a) Guardar datos
 filename <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
-feather::write_feather(configuraciones, filename)
+data.table::fwrite(configuraciones, file = filename, nThread = config$file$avbl_cores)
 # ------------------------------------------------------------------------------

@@ -6,7 +6,7 @@ list.of.packages <- c("ADGofTest", "caret", "dplyr", "fitdistrplus", "lmomco", "
                       "lubridate", "magrittr", "mgcv", "purrr", "SCI", "sirad", "SPEI", 
                       "stats", "stringr", "utils", "WRS2", "yaml", "yardstick", "feather",
                       "R6", "futile.logger", "mgcv", "doSNOW", "foreach", "snow", "parallel",
-                      "RPostgres", "ncdf4")
+                      "RPostgres", "data.table")
 for (pack in list.of.packages) {
   if (!require(pack, character.only = TRUE)) {
     stop(paste0("Paquete no encontrado: ", pack))
@@ -59,7 +59,7 @@ if (! file.exists(archivo.params)) {
 }
 
 replace_run_identifier <- function(filenames, identifier) {
-  if (is.atomic(filenames)) 
+  if (is.atomic(filenames) && grepl("<\\*idc>", filenames)) 
     filenames <- base::sub('<\\*idc>', identifier, filenames)
   if (!is.atomic(filenames))
     for (nm in names(filenames)) 
@@ -126,7 +126,10 @@ script$start()
 script$info(glue::glue("Buscando estadísticas móviles para calcular indices de sequia, ",
                        "archivo: {config$files$estadisticas_moviles$resultados}"))
 archivo <- glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$resultados}")
-estadisticas.moviles <- feather::read_feather(archivo); rm(archivo)
+estadisticas.moviles <- data.table::fread(archivo, nThread = config$files$avbl_cores) %>%
+  dplyr::mutate(fecha_desde = as.Date(fecha_desde), fecha_hasta = as.Date(fecha_hasta)) %>%
+  tibble::as_tibble()
+base::remove(archivo); base::invisible(base::gc())
 script$info("Seleccionando estadísticas móviles asociadas a las escalas especifícadas")
 estadisticas.moviles <- estadisticas.moviles %>%
   dplyr::filter(ancho_ventana_pentadas %in% (config$params$escalas * 6))
@@ -140,7 +143,10 @@ if (!all((config$params$escalas * 6) %in% estadisticas.moviles$ancho_ventana_pen
 script$info(glue::glue("Buscando configuraciones para los índices a ser calculados, ",
                        "archivo: {config$files$indices_sequia$configuraciones}"))
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
-configuraciones.indices <- feather::read_feather(archivo); rm(archivo)
+configuraciones.indices <- data.table::fread(archivo, nThread = config$files$avbl_cores) %>% 
+  dplyr::mutate(referencia_comienzo = as.Date(referencia_comienzo), referencia_fin = as.Date(referencia_fin)) %>%
+  tibble::as_tibble()
+base::remove(archivo); base::invisible(base::gc())
 script$info("Seleccionando configuraciones de índice asociadas a las escalas especifícadas")
 configuraciones.indices <- configuraciones.indices %>%
   dplyr::filter(escala %in% config$params$escalas)
@@ -160,19 +166,12 @@ configuraciones.indices <- configuraciones.indices %>%
 
 # i) Buscar ubicaciones a las cuales se aplicara el calculo de indices de sequia
 # i.1) Obtener datos producidos por el generador y filtrarlos
-script$info("Leyendo netcdf con datos de entrada")
-netcdf_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
-points_filename <- glue::glue("{config$dir$data}/{config$files$puntos_a_extraer}")
-if (is.null(config$files$puntos_a_extraer)) {
-  script$info("No se especificaron ubicaciones a extraer del netcdf")
-  script$info(glue::glue("Inicia la lectura del netcdf: {config$files$clima_generado}"))
-  datos_climaticos_generados <- gamwgen::netcdf.as.sf(netcdf_filename, add.id = T)
-} else {
-  script$info(glue::glue("Las ubicaciones a extraer del netcdf se detallan en: {config$files$puntos_a_extraer}"))
-  script$info(glue::glue("Inicia la lectura del netcdf: {config$files$clima_generado}"))
-  datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
-}
-script$info("Lectura del netcdf finalizada")
+script$info("Leyendo csv con datos de entrada")
+csv_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
+datos_climaticos_generados <- data.table::fread(csv_filename, nThread = config$files$avbl_cores) %>%
+  dplyr::rename(prcp = prcp_amt) %>% dplyr::select(-prcp_occ) %>% dplyr::mutate(date = as.Date(date)) %>% 
+  tibble::as_tibble()
+script$info("Lectura del csv finalizada")
 # i.x) Reducción de trabajo (solo para pruebas)
 # datos_climaticos_generados <- datos_climaticos_generados %>%
 #   dplyr::filter( realization %in% c(1, 2, 3), dplyr::between(date, as.Date('1991-01-01'), as.Date('2000-12-31')) )
@@ -180,6 +179,8 @@ script$info("Lectura del netcdf finalizada")
 script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
   dplyr::select(dplyr::ends_with("_id"), longitude, latitude) %>%
+  dplyr::mutate(x = longitude, y = latitude) %>%
+  sf::st_as_sf(coords = c('x', 'y'), crs = sf::st_crs(22185)) %>%
   sf::st_transform(crs = sf::st_crs(4326)) %>%
   dplyr::mutate(lon_dec = sf::st_coordinates(geometry)[,'X'],
                 lat_dec = sf::st_coordinates(geometry)[,'Y']) %>%
@@ -217,14 +218,6 @@ resultados.indices.sequia <- task.indices.sequia$run(number.of.processes = confi
 # Agregar log de la tarea al log del script
 file.append(script_logfile, task_logfile)
 
-# Transformar resultados a un objeto de tipo tibble
-resultados.indices.sequia.tibble <- resultados.indices.sequia %>% purrr::map_dfr(~.x)
-
-# Guardar resultados en un archivo fácil de compartir
-results_filename <- glue::glue("{config$dir$data}/{config$files$indices_sequia$resultados}")
-script$info(glue::glue("Guardando resultados en el archivo {results_filename}"))
-feather::write_feather(resultados.indices.sequia.tibble, results_filename)
-
 # Si hay errores, terminar ejecucion
 task.indices.sequia.errors <- task.indices.sequia$getErrors()
 if (length(task.indices.sequia.errors) > 0) {
@@ -234,6 +227,15 @@ if (length(task.indices.sequia.errors) > 0) {
   }
   script$error("Finalizando script de forma ANORMAL")
 }
+
+# Transformar resultados a un objeto de tipo tibble
+resultados.indices.sequia.tibble <- resultados.indices.sequia %>% purrr::map_dfr(~.x)
+
+# Guardar resultados en un archivo fácil de compartir
+results_filename <- glue::glue("{config$dir$data}/{config$files$indices_sequia$resultados}")
+script$info(glue::glue("Guardando resultados en el archivo {results_filename}"))
+data.table::fwrite(resultados.indices.sequia.tibble, file = results_filename, nThread = config$files$avbl_cores)
+
 # ------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------#

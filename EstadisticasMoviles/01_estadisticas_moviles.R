@@ -3,9 +3,9 @@
 rm(list = ls()); gc()
 Sys.setenv(TZ = "UTC")
 list.of.packages <- c("dplyr", "jsonlite", "lubridate", "magrittr", 
-                      "purrr", "stringr", "utils", "yaml", "ncdf4",
-                      "R6", "futile.logger", "doSNOW", "foreach", 
-                      "iterators", "snow", "RPostgres")
+                      "purrr", "stringr", "utils", "yaml", "R6", 
+                      "futile.logger", "doSNOW", "foreach", "snow",
+                      "iterators", "RPostgres", "data.table")
 for (pack in list.of.packages) {
   if (!require(pack, character.only = TRUE)) {
     stop(paste0("Paquete no encontrado: ", pack))
@@ -58,7 +58,7 @@ if (! file.exists(archivo.params)) {
 }
 
 replace_run_identifier <- function(filenames, identifier) {
-  if (is.atomic(filenames)) 
+  if (is.atomic(filenames) && grepl("<\\*idc>", filenames))
     filenames <- base::sub('<\\*idc>', identifier, filenames)
   if (!is.atomic(filenames))
     for (nm in names(filenames)) 
@@ -107,21 +107,13 @@ if (file.exists(script_logfile))
 script <- Script$new(run.dir = config$dir$run, name = script_name, create.appender = T)
 script$start()
 
-
 # c) Obtener datos producidos por el generador y filtrarlos
-script$info("Leyendo netcdf con datos de entrada")
-netcdf_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
-points_filename <- glue::glue("{config$dir$data}/{config$files$puntos_a_extraer}")
-if (is.null(config$files$puntos_a_extraer)) {
-  script$info("No se especificaron ubicaciones a extraer del netcdf")
-  script$info(glue::glue("Inicia la lectura del netcdf: {config$files$clima_generado}"))
-  datos_climaticos_generados <- gamwgen::netcdf.as.sf(netcdf_filename, add.id = T)
-} else {
-  script$info(glue::glue("Las ubicaciones a extraer del netcdf se detallan en: {config$files$puntos_a_extraer}"))
-  script$info(glue::glue("Inicia la lectura del netcdf: {config$files$clima_generado}"))
-  datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
-}
-script$info("Lectura del netcdf finalizada")
+script$info("Leyendo csv con datos de entrada")
+csv_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
+datos_climaticos_generados <- data.table::fread(csv_filename, nThread = config$files$avbl_cores) %>%
+  dplyr::rename(prcp = prcp_amt) %>% dplyr::select(-prcp_occ) %>% dplyr::mutate(date = as.Date(date)) %>% 
+  tibble::as_tibble()
+script$info("Lectura del csv finalizada")
 
 # x) Reducción de trabajo (solo para pruebas)
 # datos_climaticos_generados <- datos_climaticos_generados %>%
@@ -133,7 +125,7 @@ anos_existnts <- unique(lubridate::year(datos_climaticos_generados$date))
 if (nrow(tidyr::crossing(realizaciones, anos_existnts)) < 30)
   script$warn(paste("La cantidad de observaciones derivada de la combinación de anhos y realizaciones",
                     "es menor a 30. Lo que podría no ser suficiente para algunas de las estadísticas",
-                    "a ser calculadas a partir de las estadísticas móviles a ser calculadas!!"))
+                    "a ser calculadas a partir de las estadísticas móviles que serán generadas!!"))
 
 # g) Fechas mínima y máxima
 fecha.minima <- min(datos_climaticos_generados$date)
@@ -157,7 +149,7 @@ rm(fecha.maxima.fin.pentada)
 script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
   dplyr::select(dplyr::ends_with("_id"), longitude, latitude) %>%
-  sf::st_drop_geometry() %>% tibble::as_tibble() %>% dplyr::distinct()
+  tibble::as_tibble() %>% dplyr::distinct()
 script$info("Obtención de ubicaciones a iterar finalizada")
 
 # ------------------------------------------------------------------------------
@@ -382,14 +374,6 @@ resultados.estadisticas <- task.estadisticas$run(number.of.processes = config$ma
 # Agregar log de la tarea al log del script
 file.append(script_logfile, task_logfile)
 
-# Transformar resultados a un objeto de tipo tibble
-resultados.estadisticas.tibble <- resultados.estadisticas %>% purrr::map_dfr(~.x)
-
-# Guardar resultados en un archivo fácil de compartir
-results_filename <- glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$resultados}")
-script$info(glue::glue("Guardando resultados en el archivo {results_filename}"))
-feather::write_feather(resultados.estadisticas.tibble, results_filename)
-
 # Si hay errores, terminar ejecucion
 task.estadisticas.errors <- task.estadisticas$getErrors()
 if (length(task.estadisticas.errors) > 0) {
@@ -399,6 +383,15 @@ if (length(task.estadisticas.errors) > 0) {
   }
   script$error("Finalizando script de forma ANORMAL")
 }
+
+# Transformar resultados a un objeto de tipo tibble
+resultados.estadisticas.tibble <- resultados.estadisticas %>% purrr::map_dfr(~.x)
+
+# Guardar resultados en un archivo fácil de compartir
+results_filename <- glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$resultados}")
+script$info(glue::glue("Guardando resultados en el archivo {results_filename}"))
+data.table::fwrite(resultados.estadisticas.tibble, file = results_filename, nThread = config$files$avbl_cores)
+
 # ------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------#

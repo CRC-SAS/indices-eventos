@@ -4,7 +4,7 @@ rm(list = ls()); gc()
 Sys.setenv(TZ = "UTC")
 list.of.packages <- c("ADGofTest", "dplyr", "dbplyr", "lubridate", "magrittr", 
                       "mgcv", "purrr", "rlang", "SPEI", "stringr", "tidyr", 
-                      "utils", "yaml", "ncdf4", "futile.logger")
+                      "utils", "yaml", "futile.logger", "data.table")
 for (pack in list.of.packages) {
   if (!require(pack, character.only = TRUE)) {
     stop(paste0("Paquete no encontrado: ", pack))
@@ -57,7 +57,7 @@ if (! file.exists(archivo.params)) {
 }
 
 replace_run_identifier <- function(filenames, identifier) {
-  if (is.atomic(filenames)) 
+  if (is.atomic(filenames) && grepl("<\\*idc>", filenames)) 
     filenames <- base::sub('<\\*idc>', identifier, filenames)
   if (!is.atomic(filenames))
     for (nm in names(filenames)) 
@@ -94,14 +94,12 @@ source(glue::glue("{config$dir$base}/lib/funciones_calculo.R"), echo = FALSE)
 
 # b) Buscar ubicaciones a las cuales se aplicara el calculo de indices de sequia
 # b.1) Obtener datos producidos por el generador y filtrarlos
-futile.logger::flog.info("Leyendo netcdf con datos de entrada")
-netcdf_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
-points_filename <- glue::glue("{config$dir$data}/{config$files$puntos_a_extraer}")
-if (is.null(config$files$puntos_a_extraer))
-  datos_climaticos_generados <- gamwgen::netcdf.as.sf(netcdf_filename, add.id = T)
-if (!is.null(config$files$puntos_a_extraer))
-  datos_climaticos_generados <- gamwgen::netcdf.extract.points.as.sf(netcdf_filename, readRDS(points_filename))
-futile.logger::flog.info("Lectura del netcdf finalizada")
+futile.logger::flog.info("Leyendo csv con datos de entrada")
+csv_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
+datos_climaticos_generados <- data.table::fread(csv_filename, nThread = config$files$avbl_cores) %>%
+  dplyr::rename(prcp = prcp_amt) %>% dplyr::select(-prcp_occ) %>% dplyr::mutate(date = as.Date(date)) %>% 
+  tibble::as_tibble()
+futile.logger::flog.info("Lectura del csv finalizada")
 # B.x) Reducción de trabajo (solo para pruebas)
 # datos_climaticos_generados <- datos_climaticos_generados %>%
 #   dplyr::filter( realization %in% c(1, 2, 3), dplyr::between(date, as.Date('1991-01-01'), as.Date('2000-12-31')) )
@@ -109,6 +107,8 @@ futile.logger::flog.info("Lectura del netcdf finalizada")
 futile.logger::flog.info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
   dplyr::select(dplyr::ends_with("_id"), longitude, latitude) %>%
+  dplyr::mutate(x = longitude, y = latitude) %>%
+  sf::st_as_sf(coords = c('x', 'y'), crs = sf::st_crs(22185)) %>%
   sf::st_transform(crs = sf::st_crs(4326)) %>%
   dplyr::mutate(lon_dec = sf::st_coordinates(geometry)[,'X'],
                 lat_dec = sf::st_coordinates(geometry)[,'Y']) %>%
@@ -132,7 +132,10 @@ ubicaciones_a_procesar <- ubicaciones_a_procesar %>%
 # e) Buscar las estadisticas moviles 
 futile.logger::flog.info("Buscando estadísticas móviles para calcular indices de sequia")
 archivo <- glue::glue("{config$dir$data}/{config$files$estadisticas_moviles$resultados}")
-estadisticas.moviles <- feather::read_feather(archivo); rm(archivo)
+estadisticas.moviles <- data.table::fread(archivo, nThread = config$files$avbl_cores) %>%
+  dplyr::mutate(fecha_desde = as.Date(fecha_desde), fecha_hasta = as.Date(fecha_hasta)) %>%
+  tibble::as_tibble()
+base::remove(archivo); base::invisible(base::gc())
 
 # ------------------------------------------------------------------------------
 
@@ -239,12 +242,17 @@ estadisticas <- purrr::pmap_dfr(
 # a) Obtener configuraciones para el cálculo de los indices de sequía
 futile.logger::flog.info("Buscando configuraciones utilizadas para el cálculo de índices")
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$configuraciones}")
-indice.configuracion <- feather::read_feather(archivo); rm(archivo)
+indice.configuracion <- data.table::fread(archivo, nThread = config$files$avbl_cores) %>% 
+  dplyr::mutate(referencia_comienzo = as.Date(referencia_comienzo), referencia_fin = as.Date(referencia_fin)) %>%
+  tibble::as_tibble()
+base::remove(archivo); base::invisible(base::gc())
 
 # b) Obtener parametros generados para los indices de sequía
 futile.logger::flog.info("Buscando parámetros generados al calcular los índices")
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$parametros}")
-indice.parametro <- feather::read_feather(archivo); rm(archivo)
+indice.parametro <- data.table::fread(archivo, nThread = config$files$avbl_cores) %>%
+  tibble::as_tibble()
+base::remove(archivo); base::invisible(base::gc())
 # indice.parametro <- purrr::map_dfr(
 #   .x = config$estaciones.prueba,
 #   .f = function(estacion) {
@@ -255,7 +263,9 @@ indice.parametro <- feather::read_feather(archivo); rm(archivo)
 # a) Obtener resultados de los tests realizados al calcular de los indices de sequía
 futile.logger::flog.info("Buscando resultados de los tests realizados sobre los índices")
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$result_tst}")
-indice.resultado.test <- feather::read_feather(archivo); rm(archivo)
+indice.resultado.test <- data.table::fread(archivo, nThread = config$files$avbl_cores) %>% 
+  tibble::as_tibble()
+base::remove(archivo); base::invisible(base::gc())
 # indice.resultado.test <- purrr::map_dfr(
 #   .x = config$estaciones.prueba,
 #   .f = function(estacion) {
@@ -266,10 +276,14 @@ indice.resultado.test <- feather::read_feather(archivo); rm(archivo)
 # c) Buscar índices de sequia 
 futile.logger::flog.info("Buscando índices de sequía calculados previamente")
 archivo <- glue::glue("{config$dir$data}/{config$files$indices_sequia$resultados}")
-resultados_indices_sequia <- feather::read_feather(archivo); rm(archivo)
+resultados_indices_sequia <- data.table::fread(archivo, nThread = config$files$avbl_cores) %>% 
+  dplyr::mutate(referencia_comienzo = as.Date(referencia_comienzo), referencia_fin = as.Date(referencia_fin)) %>%
+  tibble::as_tibble()
+base::remove(archivo); base::invisible(base::gc())
 indice.valor <- resultados_indices_sequia %>%
   dplyr::left_join(indice.configuracion %>% dplyr::rename(indice_configuracion_id = id),
-                   by = c("indice", "escala", "distribucion", "metodo_ajuste")) %>%
+                   by = c("indice", "escala", "distribucion", "metodo_ajuste", 
+                          "referencia_comienzo", "referencia_fin")) %>%
   dplyr::select(-indice, -escala, -distribucion, -metodo_ajuste, 
                 -referencia_comienzo, -referencia_fin)
 # indice.valor <- purrr::map_dfr(

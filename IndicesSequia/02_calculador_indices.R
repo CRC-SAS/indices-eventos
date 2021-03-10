@@ -118,8 +118,17 @@ if (file.exists(script_logfile))
   file.remove(script_logfile)
 
 # b.3) Iniciar script
+# Si el directorio run para almacenar los log no existe, crearlo
+if (!fs::dir_exists(config$dir$run)) {
+  fs::dir_create(config$dir$run)
+}
 script <- Script$new(run.dir = config$dir$run, name = script_name, create.appender = T)
 script$start()
+
+# Crear directorios para guardar resultados intermedios
+if (!fs::dir_exists(glue::glue("{config$dir$data}/partial"))) {
+  fs::dir_create(glue::glue("{config$dir$data}/partial"))
+}
 
 
 # e) Buscar las estadisticas moviles 
@@ -168,9 +177,7 @@ configuraciones.indices <- configuraciones.indices %>%
 # i.1) Obtener datos producidos por el generador y filtrarlos
 script$info("Leyendo csv con datos de entrada")
 csv_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
-datos_climaticos_generados <- data.table::fread(csv_filename, nThread = config$files$avbl_cores) %>%
-  dplyr::rename(prcp = prcp_amt) %>% dplyr::select(-prcp_occ) %>% dplyr::mutate(date = as.Date(date)) %>% 
-  tibble::as_tibble()
+datos_climaticos_generados <- data.table::fread(csv_filename, nThread = config$files$avbl_cores) 
 script$info("Lectura del csv finalizada")
 # i.x) Reducción de trabajo (solo para pruebas)
 # datos_climaticos_generados <- datos_climaticos_generados %>%
@@ -180,8 +187,8 @@ script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
   dplyr::select(dplyr::ends_with("_id"), longitude, latitude) %>%
   dplyr::mutate(x = longitude, y = latitude) %>%
-  sf::st_as_sf(coords = c('x', 'y'), crs = sf::st_crs(22185)) %>%
-  sf::st_transform(crs = sf::st_crs(4326)) %>%
+  sf::st_as_sf(coords = c('x', 'y'), crs = sf::st_crs(config$params$projections$gk)) %>%
+  sf::st_transform(crs = sf::st_crs(config$params$projections$latlon)) %>%
   dplyr::mutate(lon_dec = sf::st_coordinates(geometry)[,'X'],
                 lat_dec = sf::st_coordinates(geometry)[,'Y']) %>%
   sf::st_drop_geometry() %>% tibble::as_tibble() %>% dplyr::distinct()

@@ -104,14 +104,23 @@ if (file.exists(script_logfile))
   file.remove(script_logfile)
 
 # b.3) Iniciar script
+# Si el directorio run para almacenar los log no existe, crearlo
+if (!fs::dir_exists(config$dir$run)) {
+  fs::dir_create(config$dir$run)
+}
 script <- Script$new(run.dir = config$dir$run, name = script_name, create.appender = T)
 script$start()
+
+# Crear directorios para guardar resultados intermedios
+if (!fs::dir_exists(glue::glue("{config$dir$data}/partial"))) {
+  fs::dir_create(glue::glue("{config$dir$data}/partial"))
+}
 
 # c) Obtener datos producidos por el generador y filtrarlos
 script$info("Leyendo csv con datos de entrada")
 csv_filename <- glue::glue("{config$dir$data}/{config$files$clima_generado}")
 datos_climaticos_generados <- data.table::fread(csv_filename, nThread = config$files$avbl_cores) %>%
-  dplyr::rename(prcp = prcp_amt) %>% dplyr::select(-prcp_occ) %>% dplyr::mutate(date = as.Date(date)) %>% 
+  dplyr::mutate(date = as.Date(date)) %>% 
   tibble::as_tibble()
 script$info("Lectura del csv finalizada")
 

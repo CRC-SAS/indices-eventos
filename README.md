@@ -1,24 +1,5 @@
----
-title: "Scripts para la caracterización de la amenaza climática"
-output:
-  bookdown::html_document2:
-    theme: united
-    css: styles.css
+# Scripts para la caracterización de la amenaza climática
 
-always_allow_html: true
-classoption: 12pt
-#csl: elsevier-harvard.csl
-
-header-includes:
-    - \usepackage{setspace}
-    - \usepackage{lineno}
-    - \usepackage{float}
-    - \usepackage{caption}
-    - \usepackage{chngcntr}
-    - \floatstyle{ruled}
-    - \newfloat{codechunk}{htbp}{chk}
-    - \floatname{codechunk}{Source Code}
-    - \floatplacement{figure}{H} #make every figure with caption = h
 
 El presente repositorio contiene los cripts para realizar el análisis probabilista de amenaza de sequías desarrollado en el marco de la Cooperación Técnica RG-T3308, “Diseño e Implementación de un Sistema de Información sobre Sequías para el Sur de América del Sur (SISSA)”  
 

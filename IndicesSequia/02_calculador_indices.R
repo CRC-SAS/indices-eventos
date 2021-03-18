@@ -122,6 +122,17 @@ if (file.exists(script_logfile))
 if (!fs::dir_exists(config$dir$run)) {
   fs::dir_create(config$dir$run)
 }
+
+# Si el directorio para almacenar los resultados de los 
+# tests de bondad de ajuste, crearlo
+if (!fs::dir_exists(glue::glue("{config$dir$data}/control/resultados_tests"))) {
+  fs::dir_create(glue::glue("{config$dir$data}/control/resultados_tests"))
+}
+# Si el directorio para almacenar los parametros de las 
+# funciones de distribución de probabilidad, crearlo
+if (!fs::dir_exists(glue::glue("{config$dir$data}/control/parametros"))) {
+  fs::dir_create(glue::glue("{config$dir$data}/control/parametros"))
+}
 script <- Script$new(run.dir = config$dir$run, name = script_name, create.appender = T)
 script$start()
 

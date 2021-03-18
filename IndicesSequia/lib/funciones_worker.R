@@ -106,7 +106,9 @@ CalcularIndicesSequiaUbicacion <- function(input.value, script, config, configur
   ## Definición de fechas.procesables, fechas.pentada.ano y pentadas.unicas
   
   # Procesar desde la primera pentada con datos estadisticos.
-  fechas.procesables <- seq.pentadas(fecha.primeros.datos, fecha.ultimos.datos)
+  fechas.procesables <- seq.pentadas(fecha.primeros.datos, fecha.ultimos.datos)  %>%
+    purrr::flatten_dbl(.) %>%
+    as_date(., origin = lubridate::origin)
   
   # Determinar que fechas pertenecen a la misma pentada del ano.
   # Esas fechas tiene los mismos parametros. De este modo, optimizamos calculos.

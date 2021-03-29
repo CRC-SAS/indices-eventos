@@ -130,6 +130,15 @@ if (!fs::dir_exists(glue::glue("{config$dir$data}/partial"))) {
   fs::dir_create(glue::glue("{config$dir$data}/partial"))
 }
 
+# Crear directorios para guardar resultados intermedios: parametros
+if (!fs::dir_exists(glue::glue("{config$dir$data}/control/parametros"))) {
+  fs::dir_create(glue::glue("{config$dir$data}/control/parametros"))
+}
+
+# Crear directorios para guardar resultados intermedios: resultados_tests
+if (!fs::dir_exists(glue::glue("{config$dir$data}/control/resultados_tests"))) {
+  fs::dir_create(glue::glue("{config$dir$data}/control/resultados_tests"))
+}
 
 # e) Buscar las estadisticas moviles 
 script$info(glue::glue("Buscando estadísticas móviles para calcular indices de sequia, ",

@@ -1,0 +1,299 @@
+---
+title: "Manual para el cálculo de índices de sequía a partir de series sintéticas"
+author: "Alessio Bocco"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output:
+  bookdown::html_document2:
+    theme: united
+    css: styles.css
+
+always_allow_html: true
+classoption: 12pt
+bibliography: indices.bib
+link-citations: true
+
+header-includes:
+    - \usepackage{setspace}
+    - \usepackage{lineno}
+    - \usepackage{float}
+    - \usepackage{caption}
+    - \usepackage{chngcntr}
+    - \floatstyle{ruled}
+    - \newfloat{codechunk}{htbp}{chk}
+    - \floatname{codechunk}{Source Code}
+    - \floatplacement{figure}{H} #make every figure with caption = h
+---
+
+```{r, echo = FALSE, include = FALSE}
+# Instalar el paquete pacman que permite instalar y/o cargar los paquetes necesarios
+if (!require("pacman")) install.packages("pacman", repos = 'http://cran.us.r-project.org')
+
+# Instalar o cargar los paquetes necesarios
+pacman::p_load("dplyr", "here", "fs", "kableExtra", "knitr")
+
+source('~/Documents/Documentos/SISSA/Devel/indices-eventos/lib/R/FechaUtils.R', echo=TRUE)
+```
+
+# Introducción 
+
+En el SISSA se utilizan datos climáticos observados in situ para calcular cuatro índices de sequía en función de las necesidades de los miembros y usuarios del sistema. Éstos son: (i) Índice de Precipitación Estandarizado (SPI) (McKee *et al.* [-@RN2357]); (ii) Índice de Precipitación – Evapotranspiración (SPEI) (Vicente-Serrano *et al.* [-@RN2351]); (iii) Deciles de Precipitación; y (iv) Porcentaje de Precipitación Normal (PPN). Sin embargo, con las series sintéticas solamente se calcularán dos indices – SPI y SPEI – para la caracterización de la amenaza de sequía, el primer paso hacia el análisis probabilista del riesgo de sequías. 
+
+## Índice de Precipitación Estandarizado (SPI)
+
+El Índice de Precipitación Estandarizado (IPE, o SPI por sus siglas en inglés) cuantifica las condiciones de déficit o exceso de precipitación en un lugar y para una escala determinada de tiempo (World Meteorological Organization 2012). El SPI fue desarrollado por McKee *et al.* [-@RN2357] con la finalidad de mejorar la detección del inicio y el monitoreo de la evolución de las sequías meteorológicas (definidas únicamente en función de la precipitación). La principal ventaja de este índice es que su cálculo requiere de una única variable climática: la precipitación. Utilizar sólo precipitación requiere de dos asunciones: (i) la variabilidad de la precipitación es mucho mayor que la de otras variables climáticas como la temperatura o evapotranspiración; y (ii) otras variables son estacionarias, es decir, sus niveles promedio no cambian en el tiempo. En 2009 la Organización Meteorológica Mundial recomendó el SPI como el principal índice que los países deben utilizar para el monitoreo de las sequías (Hayes *et al.* [-@RN879]). 
+
+## Índice de Precipitación – Evapotranspiración Estandarizado (SPEI) 
+
+El Índice de Precipitación – Evapotranspiración Estandarizado (IPEE o SPEI por sus siglas en inglés), es un índice cuyo cálculo es similar al del SPI, pero incorpora el efecto de la evapotranspiración (i.e., la demanda atmosférica de agua) que influye en las condiciones de sequía. El SPEI fue desarrollado por Vicente-Serrano *et al.* [-@RN2351] y ya ha sido ampliamente utilizado para analizar distintas características de la sequía, como ser su variabilidad, impactos y mecanismos atmosféricos que la producen (Beguería *et al.* [-@RN3834]; Vicente-Serrano *et al.*, [-@RN4786]).
+
+El SPEI utiliza como valor de entrada al balance hídrico (es decir, la diferencia entre precipitación y evapotranspiración potencial o PET por sus siglas en inglés). El cálculo de la evapotranspiración potencial es complicado debido a que involucra muchas variables meteorológicas (temperatura, humedad del aire, viento y radiación, entre otros). En este proyecto se ha utilizado la ecuación de Hargreaves y Samani (-@RN2334) modificada por Droogers and Allen (2002), que es eficiente en el cálculo de la evapotranspiración potencial utilizando sólo medias mensuales de temperatura máxima y mínima, y radiación solar extraterrestre. 
+
+Dado que el balance entre precipitación y evapotranspiración puede tomar valores negativos, el ajuste del mismo se realiza con la distribución teórica Log-Logística, que acepta valores nulos y negativos.
+
+# Metodología
+
+## Calculo en distintas escalas temporales
+
+Los efectos de las sequías se manifiestan en diferentes escalas temporales, ya que las respuestas de diferentes sistemas hidrológicos y biológicos a las anomalías de precipitación varían mucho (Ji and Peters, 2003). Es decir, puede haber grandes diferencias en la duración de los déficits hídricos necesarios para causar impactos negativos en diferentes sistemas. 
+Como la sequía es un fenómeno multiescalar, es necesario el uso de indicadores que puedan capturar adecuadamente las escalas temporales relevantes para detectar impactos negativos sobre los diferentes sistemas de interés. Por ejemplo, la sequía agrícola – definida como la escasez de agua para satisfacer las necesidades de un cultivo –  puede ser bien representada por las escalas de 2 y 3 meses, mientras que déficits en los caudales de río o arroyos se reflejan mejor por medio de las escalas de 3 a 6 meses. Asimismo, se han encontrado asociaciones entre la variación del nivel de la napa freática y los valores de los índices con escalas de 6 a 24 meses. 
+Todos los índices de sequía que se han descripto en secciones anteriores están siendo calculados para múltiples escalas temporales: 1, 2, 3, 6, 9, 12, 18, 24, 36 y 48 meses. Es decir, los índices se basan en series de precipitaciones acumuladas para cada escala. Por ejemplo, para calcular un índice con una escala de 6 meses para junio de 2003, se considera la suma de los valores mensuales de precipitación desde enero hasta junio de 2003; este valor se pone en el contexto de los totales de lluvia para enero-junio en el registro histórico. 
+De la misma forma, se puede realizar el cálculo para otras escalas temporales. Para el cálculo del SPEI, que requiere temperaturas máximas y mínimas para estimar la evapotranspiración, se usa el promedio de estas temperaturas para cada escala temporal. Siguiendo con el ejemplo anterior, el cálculo de SPEI para una escala de 6 meses para junio de 2003 utilizará los promedios mensuales de temperaturas máximas y mínimas desde enero hasta junio de 2003.
+
+## 	Período de referencia para el cálculo de índices
+
+Para el cálculo de los diferentes índices de sequía, generalmente es necesario estimar parámetros o cuantiles de la distribución empírica o teórica de precipitación. En el caso de la estimación de índices a partir de series sintéticas, se debe definir un período común para todas las realizaciones para que los valores de los índices obtenidos sean comparables. Para ello se determina un período de referencia fijo para el cual se estiman los parámetros necesarios. 
+Es deseable que el período de referencia contenga la mayor parte de la variabilidad de las series climáticas. Para las series sintéticas, la importancia de la longitud del período de referencia escogido dependerá del tipo de series producidas por el generador estocástico. Si las series sintéticas son estacionarias, la variabilidad de los datos será aproximadamente la misma para toda la serie y para todas las realizaciones. Esto quiere decir que la definición del período de referencia no será una decisión crítica. El ajuste obtenido usando un período de referencia comprendido entre 1971-2010 (que se utiliza para el cálculo de índices a partir de observaciones in situ) sería igual al obtenido usando el período 1961-2000 o cualquier otro rango de fechas ya que los valores generados para todos los años tienen la misma probabilidad. 
+
+En el caso de series pseudohistóricas o condicionadas por modelos de cambio climático, el período de referencia debe ser lo suficientemente largo para capturar oscilaciones de baja frecuencia (épocas secas y húmedas asociadas con la variabilidad climática multidecadal). Para este tipo de series el período de referencia es muy importante, ya que los valores de los índices calculados a partir de distintos ajustes pueden cambiar de manera importante. Por ejemplo, si se utiliza un período en dónde las precipitaciones fueron relativamente bajas, es posible que se subestimen los eventos secos cuando las precipitaciones sean un poco mayores. Lo contrario ocurriría con los eventos húmedos que serían sobreestimados a partir de pequeños aumentos en la precipitación. Por lo tanto, para los índices calculados a partir de series pseudohistóricas, se definió el período 1971-2010 (40 años) como período de referencia. Aunque los años en series sintéticas no corresponden a los años reales, como las series pseudohistóricas están condicionadas por valores de covariables (ej., totales trimestrales de lluvia) calculados usando observaciones históricas para esos años, se usa la convención de nombrar las series sintéticas con los años de la serie histórica usada para el ajuste de parámetros para el generador estocástico.
+
+##	Actualización frecuente de índices basada en péntadas
+
+Como se mencionó en el documento correspondiente al cálculo de Estadísticas Móviles, la demanda de una mayor frecuencia de actualización de los índices motivó el cambio del método de cálculo para aumentar la frecuencia temporal de valores actualizados de índices de sequía. Para más detalles del cambio se sugiere ver la página 4 de dicho reporte. 
+El cálculo frecuente de índices se basa en el concepto de péntadas (o períodos de aproximadamente 5 días). Se utiliza aquí una definición flexible: (a) todos los meses tienen 6 péntadas y (b) las cinco primeras péntadas dentro de un mes tienen una duración de 5 días, en tanto que la sexta y última péntada de un mes puede tener 3, 4, 5 o 6 días – para meses con 28, 29, 30 o 31 días, respectivamente (Funk et al., 2015). Por ejemplo, la primera péntada de un mes incluye los días 1 a 5 de ese mes, la segunda péntada los días 6 a 10, y así sucesivamente. Una ventaja de esta definición es que las péntadas no cruzan límites de meses, lo que hace sencilla la agregación de datos a diferentes escalas. Por ejemplo, los totales mensuales de precipitación se calculan como la suma de totales para las 6 péntadas en cada mes/año.
+Siguiendo esta lógica, los índices de sequía se calculan para cada péntada del año. Sin embargo, se debe enfatizar que, aunque los valores de los índices se actualizan cada 5 días aproximadamente, esos valores se calculan usando valores agregados para cada escala temporal especificada. La escala temporal de un índice (o sea, el período para el cual se acumula la precipitación o se promedian las temperaturas) se define en función de péntadas, y no de meses. Sin embargo, para facilitar la comprensión de los resultados, las escalas de los índices se expresan en meses (la cantidad de péntadas dividida por seis). Por ejemplo, un SPI-3 es un índice que acumula precipitación por 18 péntadas, o aproximadamente 3 meses. 
+Una de las principales ventajas del cálculo por péntadas es la precisión con la que es posible definir un evento seco. Anteriormente, la mínima resolución de detección era un mes completo, lo que ciertamente es un problema para cuantificar los impactos sobre algunos sistemas. Por ejemplo, en los sistemas agrícolas los momentos críticos de máxima sensibilidad son acotados y no necesariamente coinciden con meses calendario. 
+
+#	Pasos necesarios para el cálculo de índices de sequía
+En esta sección se describe brevemente el flujo de cálculo de índices de sequía a partir de series climáticas sintéticas. La Figura \@ref(fig:flujo) muestra un diagrama de flujo del proceso. Los pasos de este flujo se describen brevemente aquí. Para simplificar la discusión, los pasos involucrados se describen para una realización de series sintéticas. Si la simulación incluye múltiples realizaciones, la mayoría de los pasos son idénticos para cada realización; se notarán los pasos que utilicen todas las realizaciones simultáneamente.  El flujo ilustrado en la Figura \@ref(fig:flujo) es igual para ambos índices calculados (SPI y SPEI); sólo varían (a) los estadísticos necesarios para cada índice y (b) las funciones de probabilidad usadas en los ajustes de la climatología.
+
+```{r flujo, eval = TRUE, echo = FALSE, out.width = "75%", fig.align="center", fig.cap = "Flujo del proceso de cálculo de índices de sequía a partir de series sintéticas"}
+knitr::include_graphics('/Users/alessiobocco/Documents/Documentos/SISSA/Devel/indices-eventos/IndicesSequia/docs/figuras/Figura_1.png')
+```
+
+El cálculo comienza con las series sintéticas (precipitación diaria y temperaturas máxima y mínima) simuladas previamente por el generador estocástico (Se sugiere leer la documentación sobre el mismo en https://github.com/CRC-SAS/weather-generator). Las series sintéticas están almacenadas en un archivo en formato de texto separados por comas (.csv). Las series pueden simularse (i) para una ubicación  donde existen estaciones meteorológicas, (ii) para puntos geográficos determinados donde no hay  estaciones meteorológicas, o (iii) para una serie de puntos que forman una grilla regular en el espacio. Asimismo, las series sintéticas pueden ser estacionarias o pseudohistóricas (estos términos se definen más abajo) ya que el cálculo de índices de sequías es el mismo para ambos tipos.
+
+En primer lugar, las variables climáticas simuladas a paso diario para cada estación meteorológica o punto geográfico son agregadas a las escalas temporales especificadas para los índices de sequía; los datos agregados se guardan en la base de datos para uso posterior. Los datos agregados incluyen, por ejemplo, los totales de precipitación para cada escala temporal deseada; estas sumas se calculan para cada péntada en la serie de datos sintéticos. Para las temperaturas máximas y mínimas diarias utilizadas en el SPEI, la agregación implica el cálculo de valores promedio por péntada para cada escala temporal. En este documento, los valores agregados también se denominan estadísticos.
+A continuación, se seleccionan los datos agregados comprendidos dentro del período de referencia especificado para construir la climatología de cada estación meteorológica (ver Sección 2.3 sobre períodos de referencia). El período de referencia es un segmento de la serie (que puede incluir toda una serie sintética) que es considerado representativo del clima local. Por ejemplo, si se deseara calcular el SPI-3 para el 31 de enero de 2019 a partir de series pseudohistóricas, se puede utilizar el período de referencia 1971–2010 (el mismo utilizado para las series in situ). Este período de referencia contiene  la precipitación sintética acumulada para los trimestres (o 18 péntadas) de noviembre a enero de cada año entre 1971 y 2010. Recordamos al lector que los años mencionados no se refieren a fechas reales, sino a años que se asignan a los valores simulados con covariables calculadas a partir de datos históricos para esos años.
+
+Con los valores agregados para el período de referencia, se estiman los parámetros correspondientes a la distribución teórica utilizada para un índice (ej., la distribución gamma para el SPI). Los parámetros estimados se usan luego para transformar la precipitación acumulada para el período entre el 1 de noviembre de 2018 y el 31 de enero de 2019 en los valores del SPI-3 para el 31 de enero de 2019. A continuación, se ajusta una función de probabilidad a todos los valores dentro del período de referencia  para cada péntada. Luego, se comprueba la bondad de ajuste de las distribuciones para asegurar que los valores del índice calculados a posteriori sean confiables. Si los ajustes son válidos, los parámetros de cada distribución serán utilizados a continuación para calcular los índices de sequía a partir de los valores agregados o estadísticos. En las subsecciones siguientes se dan más detalles sobre cada paso para el cálculo de índices de sequía.
+
+##	Definición de las configuraciones para cálculo de índices
+
+Al igual que para series climáticas observadas, es necesario definir o especificar la configuración deseada para el cálculo de indices de sequía a partir de series sintéticas. La configuración de un índice se define como la combinación única de (i) el índice a calcular, (ii) la escala temporal deseada, (iii) el período de referencia y (iv) la metodología de ajuste. La cantidad de configuraciones posibles es definida por el usuario en función de sus necesidades. En este caso, se definen 40 configuraciones posibles, que resultan de la combinación de 2 índices (SPI y SPEI), 10 escalas temporales (1, 2, 3, 6, 9, 12, 18, 24, 36 y 48 meses), 2 métodos de ajuste (por máxima verosimilitud o no paramétrico), y un único período de referencia para series pseudohistóricas (1971-2010). Este set de 40 configuraciones es válido para series pseudohistóricas, ya que éstas requieren de un período de referencia determinado. Para series estacionarias, como el período de referencia es flexible, éste no necesariamente debe ser 1971–2010.
+Todas las posibles configuraciones especificadas se guardan en la base de datos local. Esta tabla se denominará de ahora en más tabla de configuraciones de cálculo. La Tabla 2 muestra sólo las primeras filas de esta tabla y es un ejemplo del resultado de esta etapa. Cada configuración posee un índice unívoco (id) que permite su identificación durante el proceso de cálculo de índices. La variable escala expresa la escala de agregación del índice medida en meses. Como se mencionó más arriba, internamente el script maneja la escala de agregación en péntadas, pero para facilitar la interpretación se decidió expresarla en meses completos. 
+
+
+##  Cálculo de valores agregados o estadísticos con ventana móvil
+El insumo primario principal para el cálculo de índices de sequía son los valores de variables climáticas (precipitación, temperaturas máxima y mínima) simulados a paso diario. Estos valores, también llamados estadísticos en esta discusión, se agregan para las distintas escalas temporales definidas previamente. La agregación involucra (a) la suma de precipitaciones diarias y (b) los promedios de temperaturas máximas y mínimas diarias, para la escala temporal seleccionada. Los valores agregados o estadísticos para cada escala temporal se calculan para toda la serie sintética, repitiéndose el cálculo para cada péntada. 
+Para el cálculo de valores agregados se implementó un script en lenguaje R (R Development Core Team, 2008) que procesa los datos diarios simulados de las tres variables definidas para todas las localidades (o puntos geográficos) y realizaciones generadas. Este script se ejecuta cada vez que un nuevo set de datos es simulado utilizando el generador estocástico de datos meteorológicos. Si se realiza una nueva simulación con otra configuración del generador, ya sea para otras fechas o localidades, las estadísticas también deben recalcularse porque las nuevas series generadas no serán necesariamente iguales a las originales dado el carácter estocástico del generador. Una vez que ha finalizado el proceso de agregación, los datos obtenidos, de aquí en más llamados estadísticos, se guardan en una base de datos local. 
+Dada una fecha de fin de una péntada (días 5, 10, 15, 20, 25 o fin del mes), el proceso se encarga de generar ventanas del ancho correspondiente a cada escala temporal y de computar los estadísticos previamente enumerados con los valores dentro de esa ventana. Luego, el proceso se mueve una péntada hacia adelante y se vuelve a realizar el mismo cómputo. Este proceso iterativo finaliza una vez que se completa la última péntada de la serie simulada. 
+Además de los estadísticos, se guarda un registro de todas las tareas realizadas por el script. En este registro se detalla el nombre y origen de las series sintéticas para así asegurar la trazabilidad de los datos de inicio y evitar confusiones en el caso que se realicen múltiples simulaciones mediante el generador. 
+Por último, notamos que el uso de series sintéticas tiene la ventaja que éstas no poseen datos faltantes por lo que no es necesario un procesamiento especial para el cálculo de los estadísticos.
+
+## Cálculo de índices
+En esta subsección se describirá específicamente el cálculo de los índices partiendo de los estadísticos o valores agregados y las configuraciones especificadas por el usuario. El proceso comienza al leerse los estadísticos para una estación meteorológica o punto de grilla, incluyendo todas las realizaciones. Es decir, se agrupan todas las realizaciones para un mismo punto en una sola tabla. Dado que cada estación/realización es independiente de las demás, el proceso se paraleliza para optimizar los tiempos de cálculo. 
+Una vez que se tienen los datos estadísticos de una estación, el paso siguiente es la estimación de la evapotranspiración potencial (ETP) utilizando el método de Hargreaves-Samani (Hargreaves and Samani, 1985). El conjunto de datos resultante es, a su vez, manipulado y transformado con el fin de optimizar los procesos posteriores. Llamaremos a este conjunto de datos estadísticas preprocesadas.
+Considerando los datos de cada una de las 40 configuraciones de cálculo posibles, se seleccionan los datos de las estadísticas preprocesadas cuyo ancho de ventana coincida con la escala temporal del índice a calcular. Es decir, de la tabla que contiene los estadísticos para todas las escalas temporales posibles se filtran aquellos estadísticos que fueron agregados en la escala detallada en la configuración. También en esta etapa se definen las fechas para las cuales se realizará el cálculo de los índices de sequía (fechas procesables).  Las fechas procesables serán iguales a las fechas simulados, a menos que el usuario quisiera calcular los índices para un período acotado de tiempo. Por ejemplo, si se simularon 1000 años con el generador y sólo se necesitan los valores de los índices para los primeros 500 años.  
+En el caso de las series sintéticas no se guarda una climatología en la base de datos como se hace para las series in situ. Esto se debe a que cada generación de series será diferente de la anterior. Es decir, existen diferentes tipos de series – estacionarias, pseudohistóricas, condicionadas por un modelo de cambio climático – que produce el generador estocástico presentado en el Reporte 1. Por este motivo, una misma estación meteorológica puede tener distintos valores simulados de precipitación y temperaturas máxima y mínima. Además, si bien se puede especificar una semilla para que los resultados de una misma configuración del generador se repitan, para evitar errores siempre se calcula la climatología para cada set de datos sintéticos. El ajuste de la climatología se realiza utilizando el método indicado en la configuración y las estadísticas preprocesadas para el período de referencia (también definido en la configuración). 
+El flujo de este proceso termina con el cálculo del índice para una estación o ubicación geográfica (o punto de grilla) y realización a partir de los datos agregados de cada fecha procesable y los ajustes de la climatología de esa estación. Además del valor del índice se incorpora el percentil correspondiente a ese valor en función de la climatología y el valor del estadístico para esa fecha (por ejemplo, para el caso de un SPI-3 será un dato de precipitación acumulada de 3 meses). Esta tabla luego es guardada en la base de datos. 
+Este flujo es iterativo y se repite para todas las estaciones/realizaciones y fechas procesables, así como para todas las configuraciones definidas por el usuario. A continuación, se describirán con más detalles cada uno de los pasos mencionados en esta sección. 
+
+### 3.3.1	Métodos de ajuste de climatología
+El ajuste de la climatología se realiza utilizando dos metodologías: i) ajuste paramétrico por máxima verosimilitud (EMV) y ii) ajuste no paramétrico (logsplines). Ambos métodos son los mismos que se utilizan para series in situ, por lo que se sugiere ver el reporte de Róvere para más detalles. 
+La estimación de los parámetros por máxima verosimilitud para cada péntada de la climatología se realiza utilizando el paquete fitdistrplus (https://cran.r-project.org/package=fitdistrplus) del lenguaje R (Delignette-Muller and Dutang, 2015). Este paquete permite la estimación de los parámetros para una función Gamma – utilizada para el cálculo del SPI – y para una función Log-logística – para el caso del SPEI. 
+La otra variante para el ajuste de la climatología es a través de un método no paramétrico. Al tratarse de una metodología no paramétrica no se obtiene una función matemática explícita. El ajuste en cambio se realiza a través de logsplines, cuyo objetivo es ajustar una función logarítmica a los datos observados a partir de una serie de funciones cúbicas (Perperoglou et al., 2019). La implementación en R fue realizada con el paquete logspline (https://cran.r-project.org/package=logspline). 
+Sin embargo, se han realizado modificaciones a la implementación desarrollada para series in situ, de modo de poder manejar más de una serie temporal por cada estación meteorológica. Esta modificación consiste en agrupar a todas las realizaciones en una única tabla para poder ajustar una sola climatología para todas ellas. Esto permite que las realizaciones sean comparables entre sí. De otra manera, cada realización tendría un set de parámetros diferente. Por ejemplo, si se han generado 25 realizaciones para la estación de Junín y se está ajustando la climatología de la primera péntada del año considerando el período de referencia 1971-2010. Se obtendrían 40 valores para esa péntada por realización, y dado que se generaron 25 realizaciones el total de valores para ajustar la climatología sería de 1000 valores. Una muestra de este tamaño permite obtener ajustes muy precisos y robustos. 
+Al finalizar el proceso de ajuste de la climatología se produce una lista de parámetros (en caso de ser un ajuste paramétrico) o un objeto más complejo (en caso de ser un ajuste no paramétrico). Estos resultados se guardan temporalmente en la base de datos local y luego son utilizados para validar los ajustes a las distintas funciones de probabilidad. Si el ajuste fue satisfactorio, los parámetros estimados junto con el resultado de los tests de bondad de ajuste se almacenan en la base de datos. Si las pruebas son rechazadas, es decir, no se encuentra un ajuste apropiado de la distribución a los datos sintéticos, el índice no se puede calcular porque se incurriría en un error que podría generar valores del índice poco confiables. 
+
+### Pruebas de bondad de ajuste 
+
+Las pruebas de bondad de ajuste son tests estadísticos que permiten verificar si una distribución de probabilidades supuesta es congruente con un conjunto de datos dado (en este caso, totales de precipitación calculados a partir de series sintéticas para un lugar, escala temporal deseada y péntada del año). Para que los tests pueden llevarse a cabo es necesaria la definición de una función de probabilidad de referencia, por lo que estas pruebas no pueden ser aplicadas a ajustes no paramétricos. 
+Los tests de bondad de ajuste se dividen en dos grupos: i) probabilísticos; y ii) basados en cuantiles. Entre los tests probabilísticos se encuentran las pruebas de: Kolmogorov-Smirnov, Anderson-Darling y Cramér-von Mises (Wilks, 2011). Los tres tienen como objetivo determinar si los datos observados son consistentes con una distribución determinada. 
+La ejecución de las pruebas devuelve el valor del estadístico correspondiente y un p-valor asociado al valor del estadístico. Debe recordarse que el p-valor de un test de hipótesis, indica la probabilidad de obtener un valor del estadístico igual o más extremo que el observado bajo el supuesto de la hipótesis nula. Si el valor observado del estadístico es muy extremo, entonces resulta muy improbable que bajo el supuesto de la hipótesis nula puedan ocurrir observaciones como la de la muestra.
+El p-valor obtenido es comparado con un umbral de la prueba (alpha = 0.05). El ajuste será rechazado cuando al menos un p-valor resultante de los tests sea menor al umbral. La razón de utilizar tres tests radica en que cada uno tiene fortalezas y debilidades, por lo que se complementan muy bien.
+Los tests basados en cuantiles son complementarios a los anteriores, y sólo se utilizan si los ajustes pasaron las tres pruebas probabilísticas. Los tests han sido desarrollados específicamente para poder comparar las distintas metodologías de ajuste, ya que permiten seleccionar el método que produce los mejores resultados. La primera prueba es una variante de la raíz del error cuadrático medio entre los cuantiles observados y los teóricos. Mientras más pequeño sea el error, mejor será el ajuste (Wilks, 2011). El segundo test es una prueba de correlación basada en la concordancia de los cuantiles (Lawrence and Lin, 1989). La interpretación es idéntica a la de un coeficiente de concordancia ordinario, los valores cercanos a 1 indican la máxima concordancia mientras que valores próximos a 0 indican lo contrario. La última prueba de este tipo consiste en una comparación entre los cuantiles teóricos para una distribución determinada y los cuantiles estimados para los datos observados (Wilcox et al., 2014). Se comparan sólo 10 cuantiles que son considerados representativos de la función de probabilidad; a través de una prueba de Monte-Carlo se determina si los cuantiles teóricos son iguales a los ajustados. Para cada uno de los 10 cuantiles probados se obtiene un p-valor que debe ser superior al alpha de la prueba (0.05) para ser considerado exitoso. Si el p-valor es inferior a 0.05, se considera que los cuantiles observados y los teóricos son diferentes. Este test tiene como objetivo determinar si los cuantiles extremos de la distribución se encuentran bien ajustados ya que son los que definirán las probabilidades de ocurrencia de valores extremos de los índices. 
+Finalmente, si el ajuste es exitoso, los resultados de los dos tipos de pruebas de bondad son almacenados en la base de datos, al igual que los parámetros estimados. Esto permite la evaluación posterior y comparación de los distintos métodos de ajuste. 
+
+# Ejemplo de aplicación
+
+Como se mencionó anteriormente, luego del calculo de las estadísticas móviles se procede al cálculo de los índices de sequía. Para ello se deben correr los siguientes scripts respetando el orden `01_generador_configuraciones.R`, `02_calculador_indices.R` y, de manera opcional, `03_diagnoaticos.R`. No es necesario modificar nada en el código ya que éste es válido para calcular cualquier tipo y configuración de índice de sequía. Solo se deben modificar los archivos de configuración y parámetros correspondientes a cada uno de los scripts. 
+
+## Generación de configuraciones
+
+La generación de configuraciones hace referencia a los índces que desean calcularse por lo que se debe definir la escala de agregación, el período de referencia, función de distribución a utilizar y método de ajuste. Antes de correr el script `01_generador_configuraciones.R` es necesario modificar los archivos `configuracion_generador_configuraciones.yml`y `parametros_generador_configuraciones.yml`. Estos archivos se pueden editar con cualquier editor de texto, incluso con el propio RStudio. A contiuación se muestra la estructura de los archivos de texto y como modificarlos según cada usuario. 
+El primero que modificaremos es `configuracion_generador_configuraciones.yml`. Este archivo define las rutas a las distintas carpetas donde se almacenarán los resultados y la cantidad de máxima de procesos que pueden realizarse en paralelo. 
+
+```{r comment='', echo = FALSE}
+cat(readLines('/Users/alessiobocco/Documents/Documentos/SISSA/Devel/indices-eventos/IndicesSequia/configuracion_generador_configuraciones.yml'), sep = '\n')
+```
+
+El primer bloque corresponde a las rutas. Se deben definir cuatro rutas:
+
+* `base`: corresponde a la ruta donde se encuentra el proyecto. 
+* `data `: corresponde a la ruta donde se encuentran los datos diarios de entrada para el cálculo de las estadísticas móviles. Esta carpeta no se encuentra junto al proyecto sino un nivel más arriba dentro de `indices-eventos`. 
+
+En el segundo bloque se deben definir la cantidad de procesos en paralelo que pueden llevarse adelante. La mayoría de las computadoras personales hoy poseen más de un núcleo lo que aumenta en gran medida el poder de cómputo. Se recomienda elegir una cantidad de núcleos tal que permita seguir utilizando la computadora con fluidez, en el caso que se trate de una computadora personal. Si se desconoce la cantidad de nucleos puede escribir lo siquiente en la consola. 
+
+```{r, message=FALSE}
+require(parallel)
+parallel::detectCores()
+```
+
+La función `detectCores()` del paquete `parallel` permite identificar la cantidad de núcleos disponibles. En este caso son 8 pero se recomendaría usar 6 para así dejar dos disponibles para otras tareas. 
+
+Cabe mencionar que el usuario debe crear una carpeta 
+
+El segundo archivo de texto que debe modificarse es `parametros_generador_configuraciones.yml`. Este archivo define las características que tendrá el proceso de cálculo de índices
+
+```{r comment='', echo = FALSE}
+cat(readLines('/Users/alessiobocco/Documents/Documentos/SISSA/Devel/indices-eventos/IndicesSequia/parametros_generador_configuraciones.yml'), sep = '\n')
+```
+
+En el ejemplo se muestran dos bloques, uno correspondiente al SPI y otro al SPEI. Si sólo se desea calcular uno de ellos basta con borrar las líneas del bloque no deseado. Sin embargo, la opción más segura seria comentarlas añadiendo un **#** al comienzo de cada línea. 
+En cada uno de los bloque se define la escala en meses, que debe coincidir con las estadísticas móviles agregadas. De otra forma no se podrá calcular el índices y arrojará un error ya que los datos no existen. En los métodos de ajuste pueden seleccionarse más de uno si el usuario tiene interés de compararlos. Sin embargo, debe contemplarse que la cantidad de configuraciones pueden crecer rápidamente lo que multiplica el tiempo total que insume el proceso. 
+## Cálculo de índices
+
+Luego de haber definido las configuraciones se procede con el calculo de los índices a partir de las estadísticas móviles. Antes de correr el script `02_calculador_indices.R` es necesario modificar los archivos `configuracion_calculador_indices.yml`y `parametros_calculador_indices.yml`. 
+
+El primero que modificaremos es `configuracion_calculador_indices.ym`. Este archivo define las rutas a las distintas carpetas donde se encuentran los archivos de entrada y se almacenarán los resultados y la cantidad de máxima de procesos que pueden realizarse en paralelo.  
+
+```{r comment='', echo = FALSE}
+cat(readLines('/Users/alessiobocco/Documents/Documentos/SISSA/Devel/indices-eventos/IndicesSequia/configuracion_calculador_indices.yml'), sep = '\n')
+```
+
+* `base`: corresponde a la ruta donde se encuentra el proyecto. 
+*  `run`: corresponde a la ruta donde se guardarán los logs de cada una de las tareas realizadas. Puede crearla manualmente como una subcarpeta dentro del directorio base o solo especificarla y el script la creará automáticamente. Siempre debe ser una subcarpeta dentro de `base`. 
+* `estadisticas > run`: corresponde a la ruta de ejecución del código para la agregación de las estadísticas móviles.
+* `lib`:  corresponde a la ruta donde se encuentran los scripts desarrollados por el SISSA. Esta carpeta no se encuentra junto al proyecto sino un nivel más arriba dentro de `indices-eventos`. 
+* `data `: corresponde a la ruta donde se encuentran los datos diarios de entrada para el cálculo de las índices. Esta carpeta no se encuentra junto al proyecto sino un nivel más arriba dentro de `indices-eventos`. 
+
+El segundo que archivo que se debe modificar es `parametros_calculador_indices.yml`. 
+
+```{r comment='', echo = FALSE}
+cat(readLines('/Users/alessiobocco/Documents/Documentos/SISSA/Devel/indices-eventos/IndicesSequia/parametros_calculador_indices.yml'), sep = '\n')
+```
+
+El segundo grupo de archivos a modificar corresponden a la configuración del cálculo propiamente dicho de los índices de sequía. En esta sección se definen los parámetros que condicionarán el proceso de calculo de índices. 
+
+* `escalas`: deve coincidir con las configuraciones seleccionadas anteriormente. 
+* `min.proporcion.disponibles.referencia`: cantidad mínima de datos en el período de referencia para que una pentada puede ser ajustada a la distribución de probabilidad seleccionadas. 
+* `ajuste general`: define las funciones que serán utilizadas para el ajuste de cada péntada del periodo de referencia. Se sugiere no modificar esta opción. 
+* `ajuste particular` define las funciones para el ajuste no paramétrico. Se sugiere no modificar esta opción. 
+* `test`: 
+  * `umbral.p.valor`: valores de alpha para cada uno de los test de bondad de ajuste. El estándar para ellos es 5% pero el usuario puede relajarlo si así lo desea. 
+* `calculo`: nombre de las funciones que ajustan los indices. Esta opción no debe modificarse. 
+* `projection`: sistema de referencia espacial para los datos de entrada. Por defecto, el generador devuelve un objeto que tiene una proyección planar que debe ser la misma a la indicada aquí. 
+
+## Resultados
+
+Una vez completado los archivos de configuración y parámetros, sólo queda abrir el script y ejecutarlo. A modo de ejemplo se mostrarán a continuación algunos resultados. En la subcarpeta `data` dentro del directorio raíz `indices-eventos` se encuentra una carpeta llamada `output`. Dentro de la misma se guardarán los resultados del cálculo de índices. En esa carpeta también se encuentran los resultados intermedios de los parámetros de las funciones de distribución de probabilidad elegida y los resultados de los test de bondad de ajuste. 
+
+A continuación se muestran los resultados para la estación de Villa Reynolds, San Luis, Argentina. 
+
+```{r}
+indices_sequia <- vroom::vroom('/Users/alessiobocco/Documents/Documentos/SISSA/Devel/indices-eventos/data/output/indices_sequia_id1.csv')
+```
+
+En la Tabla siguiente se muestran las primeras 75 filas de la tabla con los resultados del proceso de agregación.Se muestras las primeras 75 porque al calcular los índices a una escala de agregación de un mes, el primer se pierde y es reemplazado por NA. Por ello como el dataset usado tiene 50 realizaciones, las primeras 50 filas serán NA. Mientras que a partir de la 51, se muestra la segunda péntada de la primera realización y así sucesivamente. Las variables que posee la Tabla son las siguientes:
+
+* `station_id` : Código unívoco que identifica a la estación meteorológica
+* `point_id` : Código unívoco que representa a cada punto de la simulación. Esta variable cobra sentido cuando se simula sobre un grilla o en locaciones arbitrarias donde no hay un identificador previo para el punto. Si los datos a agregar solo corresponden a estaciones meteorológicas, esta columna podría descartarse.
+* pentada_fin`: Valor de la última péntada de la ventana de agregación. 
+* `ano`: Año de la péntada correspondiente. 
+* `metodo_imputacion_id`: Código unívoco de identifiación del método de imputación. 
+`* `conf_id`: Código de identificación de la congifuración generada por el primer script. Indica la combinación de índices de sequía, escala de agregación, período de referencia y método de ajuste. 
+* `indice`: Índice de sequía utilizado. Puede ser SPI o SPEI. 
+* `escala`: Escala de agregación seleccionada. 
+* `distribución`: Función de distribución de probabilidad usada para el cálculo. Puede ser Gamma o Log-Logística. 
+* `método_ajuste`: Tipo de método de ajuste elegido. 
+* `referencia_comienzo`: Fecha de comienzo del período de referencia. 
+* `referencia_fin`: Fecha de finalización del período de referencia.
+*`valor_dato`: Valor de la variable agregada a la escala seleccionada. 
+* `valor_indice`: Valor del índice seleccionado.
+* `percentil_dato`: Percentil correspondiente al **valor_dato** comparado con el período de referencia. 
+ 
+```{r, echo = FALSE}
+knitr::kable(indices_sequia[1:75,]) %>%
+  kableExtra::kable_styling() %>%
+  kableExtra::scroll_box(width = "100%", height = "200px")
+```
+
+La tabla resultante se encuentra en formato largo, es decir, cada realizacion/configuración de los indices se encuentra una debajo de la otra. Para visualizar los resultados se transforma la tabla de formato largo a ancho. Se filtrará solo una realización para los índices SPI y SPEI agregados a una escala de 1 mes. 
+
+```{r}
+# Filtrar valor de los índices SPI y SPEI para las escalas de 1 mes:
+indices_sequia_escala_uno <- indices_sequia %>%
+  dplyr::filter(conf_id %in% c(1, 5), realizacion == 1) %>%
+  dplyr::select(station_id, realizacion, ano, pentada_fin,
+                indice, valor_indice) %>%
+  tidyr::spread(indice, valor_indice) %>%
+  dplyr::mutate(date = pentada.ano.a.fecha.inicio(pentada_fin, ano))
+
+
+# Estructura de la tabla transformada
+indices_sequia_escala_uno %>%
+  dplyr::slice(1:10) %>%
+  knitr::kable() %>%
+  kableExtra::kable_styling() %>%
+  kableExtra::scroll_box(width = "100%", height = "200px")
+```
+
+Para visualizar los efectos de la agregación en alta frecuencia se muestra un fragmento de 10 años de la tabla anterior. Como se mencionó, este dataset posee 50 realizaciones pero aquí solo se filtra una para optimizar la visualización. Las líneas naranjas de la Figura corresponden a la serie temporal de SPEI mientras que la celeste a la de SPI. 
+
+```{r, echo = FALSE}
+highcharter::highchart() %>%
+  highcharter::hc_add_series(data = indices_sequia_escala_uno %>% 
+                               dplyr::filter(date < as.Date('1970-01-01')), type = "line", visible = TRUE, 
+                             showInLegend = TRUE, name = "SPEI", zIndex = 2, 
+                             tooltip = list(valueSuffix = "", valueDecimals = 1),
+                             mapping = highcharter::hcaes(x = date, y = SPEI)) %>%
+  highcharter::hc_add_series(data = indices_sequia_escala_uno %>% 
+                               dplyr::filter(date < as.Date('1970-01-01')), type = "line", visible = TRUE, zIndex = 1,
+                             tooltip = list(valueSuffix = "", valueDecimals = 1),
+                             showInLegend = TRUE, name = "SPI",
+                             mapping = highcharter::hcaes(x = date, y = SPI)) %>%
+  highcharter::hc_xAxis(type = 'datetime', title = list(text = "Fecha")) %>%
+  highcharter::hc_yAxis_multiples(
+    list(title = list(text = "Valor del índice"), min = -4, max = 4),
+    list(opposite = FALSE, title = list(text = " "))
+  ) %>%
+  highcharter::hc_chart(type = 'line', zoomType = 'x', panning = TRUE, panKey = 'shift') %>%
+  highcharter::hc_legend(enabled = TRUE, layout = "horizontal") %>%
+  highcharter::hc_tooltip(shared = TRUE) %>%
+  highcharter::hc_colors(c("#fc8d62", "#a6cee3")) %>%
+  highcharter::hc_title(text = "Valores de SPE y SPI de Villa Reynolds (San Luis, Argentina)") %>%
+  highcharter::hc_add_theme(highcharter::hc_theme_elementary()) %>%
+  highcharter::hc_plotOptions(
+    series = list(
+      marker = list(
+        enabled = TRUE,
+        symbol = 'diamond',
+        radius = 5,
+        lineWidth = 0,
+        states = list(
+          hover = list(
+            enabled = F
+          )
+        )
+      )
+    ),
+    column = list(
+      borderWidth = 0
+    )
+  )
+
+```
+
+
+# Bibliografía
+

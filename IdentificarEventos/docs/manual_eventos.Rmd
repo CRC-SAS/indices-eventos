@@ -1,0 +1,159 @@
+---
+title: "Manual para la identificación y caracterización de eventos secos a partir de series sintéticas"
+author: "Alessio Bocco"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output:
+  bookdown::html_document2:
+    theme: united
+    css: styles.css
+
+always_allow_html: true
+classoption: 12pt
+bibliography: indices.bib
+link-citations: true
+
+header-includes:
+    - \usepackage{setspace}
+    - \usepackage{lineno}
+    - \usepackage{float}
+    - \usepackage{caption}
+    - \usepackage{chngcntr}
+    - \floatstyle{ruled}
+    - \newfloat{codechunk}{htbp}{chk}
+    - \floatname{codechunk}{Source Code}
+    - \floatplacement{figure}{H} #make every figure with caption = h
+---
+
+```{r, echo = FALSE, include = FALSE}
+# Instalar el paquete pacman que permite instalar y/o cargar los paquetes necesarios
+if (!require("pacman")) install.packages("pacman", repos = 'http://cran.us.r-project.org')
+
+# Instalar o cargar los paquetes necesarios
+pacman::p_load("dplyr", "here", "fs", "kableExtra", "knitr", "ggplot2")
+
+```
+
+# Introducción 
+
+Las series temporales de índices de sequía permiten identificar períodos en los cuales los déficits en una variable clave del ciclo hidrológica es tal que los distintos sistemas - agrícolas, hidrológicos, naturales, socioeconómicos - comienzan a sufrir estrés. A continuación se describirán los fundamentos y la metodología para la identificación y caracterización de eventos secos a partir de índices de sequía. 
+
+# Definición de evento seco
+
+Para identificar los eventos es necesario definirlos. Un evento comienza después de una cierta cantidad de periodos consecutivos con valores de los índices menores a un umbral determinado del índice especificado. El evento termina cuando el valor del índice supera nuevamente dicho umbral (Shiau, [-@RN1610]). Un ejemplo de un evento seco hipotético con las distintas métricas que lo caracterizan se muestra en la Figura \@ref(fig:evento). La línea roja corresponde a la serie temporal de SPI. En el ejemplo, el umbral que define condiciones de sequía es SPIn < -1 (mostrado como una línea violeta punteada). El evento comienza (“Comienzo” en la Figura \@ref(fig:evento))  cuando el índice cruza el umbral hacia condiciones secas (menores al umbral definido) y termina (“Fin” en la Figura \@ref(fig:evento)) cuando el índice cruza nuevamente el umbral en el sentido contrario. Una vez definido el momento de comienzo y fin, un evento se puede caracterizar a través de una serie de métricas. Las más importantes son: 
+
+*	Duración: período de tiempo durante el cual el índice de sequía se encuentra por debajo del umbral seleccionado (Shiau, [-@RN1610]); 
+*	Intensidad: promedio de todos los valores del índice durante el período en que el mismo está por debajo del umbral seleccionado (línea verde horizontal en Figura \@ref(fig:evento)); 
+*	Magnitud: acumulación del déficit por debajo del umbral seleccionado durante el período de la sequía – se estima como el producto de la duración y la intensidad (ilustrado como el área punteada en la Figura \@ref(fig:evento)) (Mishra and Singh, [-@RN4530]); 
+*	Valor extremo: el menor valor del índice alcanzado durante el evento (Serinaldi et al., [-@RN1477]). 
+
+
+```{r evento, eval = TRUE, echo = FALSE, out.width = "75%", fig.align="center", fig.cap = "Serie de tiempo hipotética  mostrando un evento seco y sus métricas."}
+knitr::include_graphics('/Users/alessiobocco/Documents/Documentos/SISSA/Devel/indices-eventos/IdentificarEventos/docs/figuras/Figura_1.png')
+```
+
+En la Figura \@ref(fig:evento) se muestra un umbral de -1 pero es sólo a título demostrativo ya que el usuario puede definirlo en función de sus objetivos. Además, la misma lógica puede aplicarse para eventos húmedos solo que invirtiendo el signo del umbral. 
+
+A continuación se mostrarán los pasos para construir la tabla de eventos secos para la serie de índices de sequía de la localidad de Villa Reynolds (San Luis, Argentina)
+
+# Ejemplo de aplicación 
+
+Luego del calculo de los índices se procede a la identificación de los eventos secos. Para ello se deben correr script `01_identificar_eventos.R` No es necesario modificar nada en el código ya que éste es válido para la identificación de eventos secos o humedos independientemente de su definición o índice utilizado. Solo se deben modificar los archivos `configuracion_identificar_eventos.yml` y `parametros_identificar_eventos.yml`. Estos archivos se pueden editar con cualquier editor de texto, incluso con el propio RStudio. A contiuación se muestra la estructura de los archivos de texto y como modificarlos según cada usuario. 
+
+El primero que modificaremos es `configuracion_identificar_eventos.yml`. Este archivo define las rutas a las distintas carpetas donde se almacenarán los resultados y la cantidad de máxima de procesos que pueden realizarse en paralelo.
+
+```{r comment='', echo = FALSE}
+cat(readLines('/Users/alessiobocco/Documents/Documentos/SISSA/Devel/indices-eventos/IdentificarEventos/configuracion_identificar_eventos.yml'), sep = '\n')
+```
+
+El primer bloque corresponde a las rutas. Se deben definir cuatro rutas:
+
+* `base`: corresponde a la ruta donde se encuentra el proyecto. 
+*  `run`: corresponde a la ruta donde se guardarán los logs de cada una de las tareas realizadas. Puede crearla manualmente como una subcarpeta dentro del directorio base o solo especificarla y el script la creará automáticamente. Siempre debe ser una subcarpeta dentro de `base`. 
+* `indices sequias > run`: corresponde a la ruta de ejecución del código para el cálculo de los índices de sequía.
+* `lib`:  corresponde a la ruta donde se encuentran los scripts desarrollados por el SISSA. Esta carpeta no se encuentra junto al proyecto sino un nivel más arriba dentro de `indices-eventos`. 
+* `data `: corresponde a la ruta donde se encuentran los datos diarios de entrada para el cálculo de las estadísticas móviles. Esta carpeta no se encuentra junto al proyecto sino un nivel más arriba dentro de `indices-eventos`. 
+
+En el segundo bloque se deben definir la cantidad de procesos en paralelo que pueden llevarse adelante. La mayoría de las computadoras personales hoy poseen más de un núcleo lo que aumenta en gran medida el poder de cómputo. Se recomienda elegir una cantidad de núcleos tal que permita seguir utilizando la computadora con fluidez, en el caso que se trate de una computadora personal. Si se deconoce la cantidad de nucleos puede escribir lo siguiente en la consola. 
+
+```{r, message=FALSE}
+require(parallel)
+parallel::detectCores()
+```
+
+La función `detectCores()` del paquete `parallel` permite identificar la cantidad de núcleos disponibles. En este caso son 8 pero se recomendaría usar 6 para así dejar dos disponibles para otras tareas. 
+
+El segundo archivo de texto que debe modificarse es `parametros_identificar_eventos.yml`. Este archivo define las características que tendrá el proceso de agregación desde el ancho de las ventanas (escalas de interés), pasando por la política de faltantes hasta las funciones de agregación. 
+
+```{r comment='', echo = FALSE}
+cat(readLines('/Users/alessiobocco/Documents/Documentos/SISSA/Devel/indices-eventos/IdentificarEventos/parametros_identificar_eventos.yml'), sep = '\n')
+```
+
+En este archivo se definen los umbrales para la detección de los eventos secos y húmedos y la duración mínima que debe tener para ser considerado un evento seco.El umbral está expresado en valores del índice mientras que la duración mínima en péntadas (período de 5 días).
+Una vez que se han definido estos archivos con la configuración deseada se puede correr el script `01_identificar_eventos.R`. 
+
+## Resultados
+
+A continuación se muestran los resultados del script de identificación de eventos. En la subcarpeta `data` dentro del directorio raíz `indices-eventos` se encuentra una carpeta llamada `output`. Dentro de la misma se guardarán los resultados del cálculo de índices. 
+
+A continuación se muestran los resultados para la estación de Villa Reynolds, San Luis, Argentina. 
+
+```{r, warning=FALSE, message=FALSE}
+eventos <- vroom::vroom('/Users/alessiobocco/Documents/Documentos/SISSA/Devel/indices-eventos/data/output/eventos_identificados_id1.csv')
+```
+
+La tabla contiene las sigueiente variables:
+
+* `realización`: Identificador del número de realización. 
+* `station_id`: Identificador de la estación meteorológica o punto.
+* `numero_evento`: Identificador de cada evento.
+* `fecha_inicio`: Fecha de comienzo del evento. 
+* `fecha_fin`: Fecha de Finalización del evento. 
+* `intensidad`: Intensidad del evento seco. 
+* `magnitud`: Magnitud del evento seco.
+* `duracion`: Duración del evento seco. 
+* `mínimo`: Valor mínimo del índice durante el evento. 
+* `maximo`: Valor máximo del índice durante el evento. 
+* `tipo_evento`: Tipo de evento.Es decir, seco o húmedo. 
+`* `conf_id`: Código de identificación de la congifuración generada por el primer script. Indica la combinación de índices de sequía, escala de agregación, período de referencia y método de ajuste. 
+* `indice`: Índice de sequía utilizado. Puede ser SPI o SPEI. 
+* `escala`: Escala de agregación seleccionada. 
+* `distribución`: Función de distribución de probabilidad usada para el cálculo. Puede ser Gamma o Log-Logística. 
+* `método_ajuste`: Tipo de método de ajuste elegido. 
+* `referencia_comienzo`: Fecha de comienzo del período de referencia. 
+* `referencia_fin`: Fecha de finalización del período de referencia.
+
+```{r, echo = FALSE}
+knitr::kable(eventos[1:10,]) %>%
+  kableExtra::kable_styling() %>%
+  kableExtra::scroll_box(width = "100%", height = "200px")
+```
+
+Otra forma interesante de visualizar los resultados es a través de funciones de densidad empírica. A continuación se muestran las Figuras XX y XX donde se observa la densidad empírica de la intensidad y magnitud de los eventos secos identificados a partir de SPI y SPEI agregado a una escala de un mes para la localidad de Villa Reynolds. 
+
+```{r, warning=FALSE}
+eventos_secos <- eventos %>%
+  dplyr::filter(conf_id %in% c(1, 5), tipo_evento == 'seco') 
+
+ggplot2::ggplot(data = eventos_secos, ggplot2::aes(x = intensidad, color = indice)) +
+  ggplot2::geom_density() +
+  ggplot2::scale_x_continuous(name = 'Intensidad de los eventos secos',
+                              limits = c(-3, -1)) +
+  ggplot2::ylab('Densidad') +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position = 'bottom',
+                 legend.title = ggplot2::element_blank())
+
+ggplot2::ggplot(data = eventos_secos, ggplot2::aes(x = magnitud, color = indice)) +
+  ggplot2::geom_density() +
+  ggplot2::scale_x_continuous(name = 'Magnitud de los eventos secos',
+                              limits = c(-100, -1)) +
+  ggplot2::ylab('Densidad') +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position = 'bottom',
+                 legend.title = ggplot2::element_blank())
+```
+
+En ambas Figuras se agrupan los eventos de las 50 realizaciones. Cabe mencionar que la serie histórica tiene 140 eventos mientras que las 50 realizaciones totalizan 7059 eventos secos identificados. Esta multiplicación de la cantidad de eventos permite ajustar modelos probabilísticos con una confianza mucho mayor.  
+
+
+# Bibliografía

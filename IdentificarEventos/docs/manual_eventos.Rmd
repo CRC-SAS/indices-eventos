@@ -3,7 +3,8 @@ title: "Manual para la identificación y caracterización de eventos secos a par
 author: "Alessio Bocco"
 date: '`r format(Sys.time(), "%d %B, %Y")`'
 output:
-  bookdown::html_document2:
+  #bookdown::html_document2:
+  bookdown::pdf_book:
     theme: united
     css: styles.css
 
@@ -123,8 +124,9 @@ La tabla contiene las sigueiente variables:
 * `referencia_fin`: Fecha de finalización del período de referencia.
 
 ```{r, echo = FALSE}
-knitr::kable(eventos[1:10,]) %>%
-  kableExtra::kable_styling() %>%
+knitr::kable(eventos[1:10,], "latex", booktabs = T) %>%
+  kableExtra::kable_styling(position = "center",
+                            latex_options = c("striped", "scale_down")) %>%
   kableExtra::scroll_box(width = "100%", height = "200px")
 ```
 

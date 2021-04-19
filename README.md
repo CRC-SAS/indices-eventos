@@ -1,9 +1,9 @@
 # Scripts para la caracterización de la amenaza climática de sequías 
 
 
-El presente repositorio contiene los cripts para realizar el análisis probabilista de amenaza de sequías desarrollado en el marco de la Cooperación Técnica RG-T3308, “Diseño e Implementación de un Sistema de Información sobre Sequías para el Sur de América del Sur (SISSA)”  
+El presente repositorio contiene los scripts para realizar el análisis probabilista de amenaza de sequías desarrollado en el marco de la Cooperación Técnica RG-T3308, “Diseño e Implementación de un Sistema de Información sobre Sequías para el Sur de América del Sur (SISSA)”  
 
-El repositorio contiene cuatro carpetas princiaples: 
+El repositorio contiene cuatro carpetas principales: 
 
 * data: Ubicación donde se encuentran los datos de entradas
 * EstadísticasMoviles: Contiene los scipts necesarios para la agregación en alta frecuencia. Además, se encuentra un documento que explica el mecanismo de agregación de variables (precipitación y temperaturas máxima y mínima) utilizando ventanas móviles basadas en péntadas.

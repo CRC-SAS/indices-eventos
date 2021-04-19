@@ -3,7 +3,8 @@ title: "Manual para el cálculo de índices de sequía a partir de series sinté
 author: "Alessio Bocco"
 date: '`r format(Sys.time(), "%d %B, %Y")`'
 output:
-  bookdown::html_document2:
+  #bookdown::html_document2:
+  bookdown::pdf_book:
     theme: united
     css: styles.css
 
@@ -223,8 +224,9 @@ En la Tabla siguiente se muestran las primeras 75 filas de la tabla con los resu
 * `percentil_dato`: Percentil correspondiente al **valor_dato** comparado con el período de referencia. 
  
 ```{r, echo = FALSE}
-knitr::kable(indices_sequia[1:75,]) %>%
-  kableExtra::kable_styling() %>%
+knitr::kable(indices_sequia[1:75,], "latex", booktabs = T) %>%
+  kableExtra::kable_styling(position = "center",
+                            latex_options = c("striped", "scale_down")) %>%
   kableExtra::scroll_box(width = "100%", height = "200px")
 ```
 

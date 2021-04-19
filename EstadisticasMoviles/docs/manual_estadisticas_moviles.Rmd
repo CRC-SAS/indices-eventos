@@ -3,7 +3,8 @@ title: "Manual para el cálculo de estadísticas móviles a partir de series sin
 author: "Alessio Bocco"
 date: '`r format(Sys.time(), "%d %B, %Y")`'
 output:
-  bookdown::html_document2:
+  #bookdown::html_document2:
+  bookdown::pdf_book:
     theme: united
     css: styles.css
 
@@ -22,6 +23,8 @@ header-includes:
     - \floatname{codechunk}{Source Code}
     - \floatplacement{figure}{H} #make every figure with caption = h
 ---
+
+
 ```{r, echo = FALSE, include = FALSE}
 # Instalar el paquete pacman que permite instalar y/o cargar los paquetes necesarios
 if (!require("pacman")) install.packages("pacman", repos = 'http://cran.us.r-project.org')
@@ -133,8 +136,9 @@ A continuación, se muestran las primeras 10 filas de la tabla con los resultado
 * `valor`: Valor del estadístico correspondiente a cada ventana/año.
 
 ```{r, echo = FALSE}
-knitr::kable(estadisticas_moviles[1:10,]) %>%
-  kableExtra::kable_styling() %>%
+knitr::kable(estadisticas_moviles[1:10,], "latex", booktabs = T) %>%
+  kableExtra::kable_styling(position = "center",
+                            latex_options = c("striped", "scale_down")) %>%
   kableExtra::scroll_box(width = "100%", height = "200px")
 ```
 Como se observa, la tabla tiene un formato largo. Es decir, las variables y los estadísticos usados en el proceso de agregación se encuentran en las filas y no en las columnas. Para continuar con el proceso de cálculo de índices, éste es el formato que debe tener pero si se desea explorar los resultados en un formato más amigable se puede hacer lo siguiente. 

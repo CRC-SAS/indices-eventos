@@ -151,6 +151,11 @@ if (!fs::dir_exists(glue::glue("{config$dir$data}/control/resultados_tests"))) {
   fs::dir_create(glue::glue("{config$dir$data}/control/resultados_tests"))
 }
 
+# Crear directorios para guardar resultados finale
+if (!fs::dir_exists(glue::glue("{config$dir$data}/output"))) {
+  fs::dir_create(glue::glue("{config$dir$data}/output"))
+}
+
 # e) Buscar las estadisticas moviles 
 script$info(glue::glue("Buscando estadísticas móviles para calcular indices de sequia, ",
                        "archivo: {config$files$estadisticas_moviles$resultados}"))
@@ -207,8 +212,8 @@ script$info("Obtener ubicaciones sobre las cuales iterar")
 ubicaciones_a_procesar <- datos_climaticos_generados %>%
   dplyr::select(dplyr::ends_with("_id"), longitude, latitude) %>%
   dplyr::mutate(x = longitude, y = latitude) %>%
-  sf::st_as_sf(coords = c('x', 'y'), crs = sf::st_crs(config$params$projections$gk)) %>%
-  sf::st_transform(crs = sf::st_crs(config$params$projections$latlon)) %>%
+  sf::st_as_sf(coords = c('x', 'y'), crs = sf::st_crs(config$params$projections$latlon)) %>%
+  #sf::st_transform(crs = sf::st_crs(config$params$projections$gk)) %>%
   dplyr::mutate(lon_dec = sf::st_coordinates(geometry)[,'X'],
                 lat_dec = sf::st_coordinates(geometry)[,'Y']) %>%
   sf::st_drop_geometry() %>% tibble::as_tibble() %>% dplyr::distinct()

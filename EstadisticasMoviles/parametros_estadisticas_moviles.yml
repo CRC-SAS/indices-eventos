@@ -7,7 +7,7 @@
 # siguientesL 1, 2, 3, 6, 9, 12, 18, 24, 36 y 48 MESES. 1 mes = 6 pentadas, por lo
 # tanto, al pasar los meses (de las escalas), a pentadas, se obtienen los sigueintes 
 # valores: 6, 12, 18, 36, 54, 72, 108, 144, 216 y 288.
-ancho.ventana.pentadas: [ 6, 12, 18, 36, 54, 72, 108, 144, 216, 288 ]
+ancho.ventana.pentadas: [ 6, 18]
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
